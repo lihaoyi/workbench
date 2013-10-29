@@ -24,7 +24,7 @@ object Plugin extends sbt.Plugin {
 
       val bundle = crossTarget.value / "resources.js"
       val fileLines = for((path, data) <- fileData) yield {
-        "    \"" + path + "\": ScalaJS.modules.scala_js_Resource().create(\"" + data + "\")"
+        "    \"" + path + "\": \"" + data + "\""
       }
 
       IO.write(bundle, "\nScalaJS.resources = {\n" + fileLines.mkString(",\n") + "\n}" )
