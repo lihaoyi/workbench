@@ -2,7 +2,7 @@ package scala.js.resource
 
 import sbt._
 import Keys._
-import ch.epfl.lamp.sbtscalajs.ScalaJSPlugin.ScalaJSKeys._
+import scala.scalajs.sbtplugin.ScalaJSPlugin.ScalaJSKeys._
 import org.apache.commons.codec.binary.Base64
 
 
