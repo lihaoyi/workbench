@@ -1,10 +1,23 @@
 import sbt._
+import Keys._
+
 
 object Build extends sbt.Build {
   import sbt._
 
-  lazy val runtime = Project("runtime", file("runtime"))
-  lazy val plugin = Project("plugin", file("plugin"))
-
-
+  override lazy val projects = Seq(root)
+  lazy val root =
+    Project("scala-js-workbench", file("."))
+      .dependsOn(uri("../WebSockets"))
+      .settings(
+        sbtPlugin := true,
+        (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.js").get},
+        resolvers += "spray repo" at "http://repo.spray.io",
+        resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/",
+        libraryDependencies ++= Seq(
+          "io.spray" % "spray-can" % "1.2-RC3",
+          "com.typesafe.akka"   %%  "akka-actor"    % "2.2.3",
+          "com.typesafe.play" %% "play-json" % "2.2.0-RC1"
+        )
+      )
 }
