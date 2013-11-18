@@ -22,11 +22,12 @@ import spray.can.server.websockets.model.OpCode.Text
 
 package object workbench extends sbt.Plugin {
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
+  val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
   val generateClient = taskKey[File]("generates a .js file that can be embedded in your web page")
   val localUrl = settingKey[(String, Int)]("localUrl")
   val server = settingKey[ActorRef]("local websocket server")
   val fileName = settingKey[String]("name of the generated javascript file")
-
+  val bootstrapSnippet = settingKey[String]("piece of javascript to make things happen")
   implicit val system = ActorSystem(
     "SystemLol",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
@@ -46,7 +47,7 @@ package object workbench extends sbt.Plugin {
     localUrl := ("localhost", 12345),
     fileName := "workbench.js",
     server := {
-      implicit val server = system.actorOf(Props(new SocketServer))
+      implicit val server = system.actorOf(Props(new SocketServer(bootstrapSnippet.value)))
       val host = localUrl.value
       io.IO(Sockets) ! Http.Bind(server, host._1, host._2)
       server
@@ -57,8 +58,8 @@ package object workbench extends sbt.Plugin {
         new Logger {
           def log(level: Level.Value, message: => String): Unit =
             if(level >= Level.Info) server.value.send(Json.arr("print", level.toString(), message))
-          def success(message: => String): Unit = server.value.send(Json.arr("print", message))
-          def trace(t: => Throwable): Unit = server.value.send(Json.arr("print", t.toString))
+          def success(message: => String): Unit = server.value.send(Json.arr("print", "info", message))
+          def trace(t: => Throwable): Unit = server.value.send(Json.arr("print", "error", t.toString))
         }
       }
       val currentFunction = extraLoggers.value
@@ -68,16 +69,29 @@ package object workbench extends sbt.Plugin {
       streams.value.log("Reloading Pages...")
       server.value.send(Json.arr("reload"))
     },
+    updateBrowsers := {
+      println("partialReload")
+      server.value send Json.arr("clear")
+      ((crossTarget in Compile).value * "*.js").get.map{ (x: File) =>
+        println("Checking " + x.getName)
+        FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
+          println("Refreshing " + x.getName)
+          server.value send Json.arr("run", f.head.getAbsolutePath, bootstrapSnippet.value)
+          f
+        }(Set(x))
+      }
+    },
     generateClient := {
-      val clientTemplate = IO.readStream(getClass.getClassLoader.getResourceAsStream("workbench_template.ts"))
-      val transformed = clientTemplate.replace("<host>", localUrl.value._1).replace("<port>", localUrl.value._2.toString)
-      val outputFile = (crossTarget in Compile).value / fileName.value
-      IO.write(outputFile, transformed)
-      outputFile
+      FileFunction.cached(streams.value.cacheDirectory / "workbench"/ "workbench.js", FilesInfo.full, FilesInfo.full){ (f: Set[File]) =>
+        val transformed = IO.read(f.head).replace("<host>", localUrl.value._1).replace("<port>", localUrl.value._2.toString)
+        val outputFile = (crossTarget in Compile).value / fileName.value
+        IO.write(outputFile, transformed)
+        Set(outputFile)
+      }(Set(new File(getClass.getClassLoader.getResource("workbench_template.ts").getPath))).head
     }
   )
 
-  class SocketServer extends Actor{
+  class SocketServer(bootstrapSnippet: String) extends Actor{
     val sockets: mutable.Set[ActorRef] = mutable.Set.empty
     def receive = {
       case x: Tcp.Connected => sender ! Tcp.Register(self) // normal Http server init
@@ -97,6 +111,7 @@ package object workbench extends sbt.Plugin {
       case Sockets.Upgraded =>
         sockets.add(sender)
         println("Browser Open n=" + sockets.size)
+        self send Json.arr("eval", bootstrapSnippet)
 
       case f @ Frame(fin, rsv, Text, maskingKey, data) =>
         sockets.foreach(_ ! f.copy(maskingKey=None))
@@ -104,7 +119,6 @@ package object workbench extends sbt.Plugin {
       case _: Tcp.ConnectionClosed =>
         if (sockets.contains(sender)) println("Browser Closed n=" + sockets.size )
         sockets.remove(sender)
-
 
       case x =>
     }

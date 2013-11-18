@@ -16,7 +16,6 @@ To Use
 - Clone this from Github into a local directory
 - Add a dependency onto the scala-js-workbench project, e.g. in `project/project/Build.sbt`
 - Add `scala.js.workbench.buildSettingsX` to your project settings in `project/Build.sbt`
-- Add `refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)` to your project settings, to make it refresh every time `packageJS` completes.
 - Modify the `packageJS` task with the following setting, to make it generate the snippet of `workbench.js` file needed to communicate with SBT:
 
 ```scala
@@ -25,9 +24,27 @@ packageJS in Compile := {
   }
 ```
 
-With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can run the `refreshBrowsers` command to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh itself automatically at the end of every `packageJS` cycle.
+- Define your `bootstrapSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootstrapSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own. You do not also need to include this on the page itself, as scala-js-workbench will execute this snippet when the browser first connects.
 
-Current still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT.
+Now you have a choice of what you want to do when the code compiles:
+
+refreshBrowsers
+===============
+`refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)`
+
+This will to make any client browsers refresh every time `packageJS` completes.
+
+updateBrowsers
+==============
+`updateBrowsers <<= updateBrowsers.triggeredBy(packageJS in Compile)`
+
+This will attempt to perform an update without refreshing the page every time `packageJS` completes. This involves returning the state of the `body` to the initial state before any javascript was run, stripping all event listeners and clearing all repeated timeouts and intervals. This is a best-effort cleanup, and do things like clear up websocket connections or undo modifications done to `window` or `document`, but should suffice for most applications.
+
+-------
+
+With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can run the `refreshBrowsers` command to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh/update itself automatically at the end of every `packageJS` cycle.
+
+Current still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT. Also, the initial page-load/refresh while the caches are first being set up may cause things to misbehave, but refreshing the page manually once should be enough for it to stabilize.
 
 Depends on [SprayWebSockets](https://github.com/lihaoyi/SprayWebSockets) for its websocket server; this will need to be checked out into a local directory WebSockets next to your SBT project folder. See this repo (https://github.com/lihaoyi/scala-js-game-2) for a usage example.
 
