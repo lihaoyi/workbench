@@ -1,7 +1,7 @@
 scala-js-workbench
 -----------------
 
-!https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true
+![Example](https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true)
 
 A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to make development in the browser more pleasant.
 
