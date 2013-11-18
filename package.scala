@@ -69,7 +69,7 @@ package object workbench extends sbt.Plugin {
       server.value.send(Json.arr("reload"))
     },
     generateClient := {
-      val clientTemplate = IO.readStream(getClass.getClassLoader.getResourceAsStream("workbench_template.js"))
+      val clientTemplate = IO.readStream(getClass.getClassLoader.getResourceAsStream("workbench_template.ts"))
       val transformed = clientTemplate.replace("<host>", localUrl.value._1).replace("<port>", localUrl.value._2.toString)
       val outputFile = (crossTarget in Compile).value / fileName.value
       IO.write(outputFile, transformed)

@@ -1,12 +1,37 @@
-scala-js-resource
+scala-js-workbench
 -----------------
 
-Provides common functionality when working with [scala-js](https://github.com/lampepfl/scala-js) applications. Enhances the sbt `packageJS` command to:
+!https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true
 
-- Copies files from your `/src/js` folder directly into the output path
-- Bundles up files from your `/src/resource` folder into a single `resource.js` file, and makes them available through the `scala.scalajs.js.Resource` object. For example, calling `Resource("cow.txt").string` will provide you the string contents of `/src/resource/cow.txt`.
+A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to make development in the browser more pleasant.
 
-Currently really rough around the edges, but it already does much of what I want it to do. Pull requests welcome!
+- Spins up a local websocket server on (by default) localhost:12345, whenever you're in the SBT console. Navigate to localhost:12345 in the browser and it'll show a simple page tell you it's alive.
+- Generates a `workbench.js` file in your packageJS output directory, which acts a stub for SBT to control the browser. You'll need to include this in your HTML page manually via a script tag.
+- Forwards all SBT logging from your SBT console to the browser console, so you can see what's going on (e.g. when the project is recompiling) without having to flip back and forth between browser and terminal.
+- Sends commands to tell the connected browsers to refresh every time your Scala.Js project completes a `packageJS`.
+
+To Use
+------
+
+- Clone this from Github into a local directory
+- Add a dependency onto the scala-js-workbench project, e.g. in `project/project/Build.sbt`
+- Add `scala.js.workbench.buildSettingsX` to your project settings in `project/Build.sbt`
+- Add `refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)` to your project settings, to make it refresh every time `packageJS` completes.
+- Modify the `packageJS` task with the following setting, to make it generate the snippet of `workbench.js` file needed to communicate with SBT:
+
+```scala
+packageJS in Compile := {
+    (packageJS in Compile).value :+ scala.js.workbench.generateClient.value
+  }
+```
+
+With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can run the `refreshBrowsers` command to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh itself automatically at the end of every `packageJS` cycle.
+
+Current still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT.
+
+Depends on [SprayWebSockets](https://github.com/lihaoyi/SprayWebSockets) for its websocket server; this will need to be checked out into a local directory WebSockets next to your SBT project folder. See this repo (https://github.com/lihaoyi/scala-js-game-2) for a usage example.
+
+Pull requests welcome!
 
 License
 -------

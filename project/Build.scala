@@ -11,7 +11,7 @@ object Build extends sbt.Build {
       .dependsOn(uri("../WebSockets"))
       .settings(
         sbtPlugin := true,
-        (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.js").get},
+        (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.ts").get},
         resolvers += "spray repo" at "http://repo.spray.io",
         resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/",
         libraryDependencies ++= Seq(
