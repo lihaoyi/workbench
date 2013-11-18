@@ -2,9 +2,7 @@ var socket = (function(){
     var open = false
     var shadowBody = null
     window.onload = function(){
-        console.log("Loaded!")
         shadowBody = document.body.cloneNode()
-        console.log("Loaded!X")
     }
 
     var start = function(){
@@ -30,6 +28,7 @@ var socket = (function(){
             if (data[0] == "run"){
                 var tag = document.createElement("script")
                 var loaded = false
+                console.log("Rerunning Script... " + data[1])
                 tag.setAttribute("src", data[1])
                 if (data[2]){
                     tag.onreadystatechange = tag.onload = function() {

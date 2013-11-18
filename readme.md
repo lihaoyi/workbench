@@ -8,7 +8,7 @@ A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to ma
 - Spins up a local websocket server on (by default) localhost:12345, whenever you're in the SBT console. Navigate to localhost:12345 in the browser and it'll show a simple page tell you it's alive.
 - Generates a `workbench.js` file in your packageJS output directory, which acts a stub for SBT to control the browser. You'll need to include this in your HTML page manually via a script tag.
 - Forwards all SBT logging from your SBT console to the browser console, so you can see what's going on (e.g. when the project is recompiling) without having to flip back and forth between browser and terminal.
-- Sends commands to tell the connected browsers to refresh every time your Scala.Js project completes a `packageJS`.
+- Sends commands to tell the connected browsers to refresh/update every time your Scala.Js project completes a `packageJS`.
 
 To Use
 ------
@@ -32,19 +32,31 @@ refreshBrowsers
 ===============
 `refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)`
 
-This will to make any client browsers refresh every time `packageJS` completes.
+This will to make any client browsers refresh every time `packageJS` completes, saving you flipping back and forth between SBT and the browser to refresh the page after compilation is finished.
 
 updateBrowsers
 ==============
 `updateBrowsers <<= updateBrowsers.triggeredBy(packageJS in Compile)`
 
-This will attempt to perform an update without refreshing the page every time `packageJS` completes. This involves returning the state of the `body` to the initial state before any javascript was run, stripping all event listeners and clearing all repeated timeouts and intervals. This is a best-effort cleanup, and do things like clear up websocket connections or undo modifications done to `window` or `document`, but should suffice for most applications.
+This will attempt to perform an update without refreshing the page every time `packageJS` completes, which is much faster than a full page refresh since the browser doesn't need to parse/exec the huge blob of `extdeps.js`. This involves:
+
+- Returning the state of `document.body` to the initial state before any javascript was run
+- Stripping all event listeners from things within body
+- Clearing all repeated timeouts and intervals.
+
+`updateBrowsers` is a best-effort cleanup, and does not do things like:
+
+- clear up outstanding websocket/ajax connections
+- undo modifications done to `window` or `document`
+- mutations to global javascript objects
+
+Nonetheless, for the bulk of javascript libraries these limitations are acceptable. As long as you're not doing anything too crazy, `updateBrowsers` but should suffice for most applications.
 
 -------
 
-With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can run the `refreshBrowsers` command to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh/update itself automatically at the end of every `packageJS` cycle.
+With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can now run the `refreshBrowsers` and `updateBrowsers` commands to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh/update itself automatically at the end of every `packageJS` cycle.
 
-Current still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT. Also, the initial page-load/refresh while the caches are first being set up may cause things to misbehave, but refreshing the page manually once should be enough for it to stabilize.
+Currently still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT. Also, the initial page-load/refresh while the caches are first being set up may cause things to misbehave, but refreshing the page manually once should be enough for it to stabilize.
 
 Depends on [SprayWebSockets](https://github.com/lihaoyi/SprayWebSockets) for its websocket server; this will need to be checked out into a local directory WebSockets next to your SBT project folder. See this repo (https://github.com/lihaoyi/scala-js-game-2) for a usage example.
 
