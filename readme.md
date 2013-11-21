@@ -24,7 +24,7 @@ packageJS in Compile := {
   }
 ```
 
-- Define your `bootstrapSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootstrapSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own. You do not also need to include this on the page itself, as scala-js-workbench will execute this snippet when the browser first connects.
+- Define your `bootSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own. You do not also need to include this on the page itself, as scala-js-workbench will execute this snippet when the browser first connects.
 
 Now you have a choice of what you want to do when the code compiles:
 
@@ -42,7 +42,8 @@ This will attempt to perform an update without refreshing the page every time `p
 
 - Returning the state of `document.body` to the initial state before any javascript was run
 - Stripping all event listeners from things within body
-- Clearing all repeated timeouts and intervals.
+- Clearing all repeated timeouts and intervals
+- Running the `bootSnippet` again
 
 `updateBrowsers` is a best-effort cleanup, and does not do things like:
 
@@ -51,6 +52,8 @@ This will attempt to perform an update without refreshing the page every time `p
 - mutations to global javascript objects
 
 Nonetheless, for the bulk of javascript libraries these limitations are acceptable. As long as you're not doing anything too crazy, `updateBrowsers` but should suffice for most applications.
+
+You can force the clean-up-and-reboot to happen from the browser via the shortcut Ctrl-Alt-Shift-Enter if you simply wish to reset the browser to a clean state.
 
 -------
 

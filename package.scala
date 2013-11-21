@@ -27,7 +27,7 @@ package object workbench extends sbt.Plugin {
   val localUrl = settingKey[(String, Int)]("localUrl")
   val server = settingKey[ActorRef]("local websocket server")
   val fileName = settingKey[String]("name of the generated javascript file")
-  val bootstrapSnippet = settingKey[String]("piece of javascript to make things happen")
+  val bootSnippet = settingKey[String]("piece of javascript to make things happen")
   implicit val system = ActorSystem(
     "SystemLol",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
@@ -47,7 +47,7 @@ package object workbench extends sbt.Plugin {
     localUrl := ("localhost", 12345),
     fileName := "workbench.js",
     server := {
-      implicit val server = system.actorOf(Props(new SocketServer(bootstrapSnippet.value)))
+      implicit val server = system.actorOf(Props(new SocketServer()))
       val host = localUrl.value
       io.IO(Sockets) ! Http.Bind(server, host._1, host._2)
       server
@@ -76,14 +76,18 @@ package object workbench extends sbt.Plugin {
         println("Checking " + x.getName)
         FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
           println("Refreshing " + x.getName)
-          server.value send Json.arr("run", f.head.getAbsolutePath, bootstrapSnippet.value)
+          server.value send Json.arr("run", f.head.getAbsolutePath, bootSnippet.value)
           f
         }(Set(x))
       }
     },
     generateClient := {
-      FileFunction.cached(streams.value.cacheDirectory / "workbench"/ "workbench.js", FilesInfo.full, FilesInfo.full){ (f: Set[File]) =>
-        val transformed = IO.read(f.head).replace("<host>", localUrl.value._1).replace("<port>", localUrl.value._2.toString)
+      FileFunction.cached(streams.value.cacheDirectory / "workbench"/ "workbench.js", FilesInfo.full, FilesInfo.exists){ (f: Set[File]) =>
+        val transformed =
+          IO.read(f.head)
+            .replace("<host>", localUrl.value._1)
+            .replace("<port>", localUrl.value._2.toString)
+            .replace("<bootSnippet>", bootSnippet.value)
         val outputFile = (crossTarget in Compile).value / fileName.value
         IO.write(outputFile, transformed)
         Set(outputFile)
@@ -91,7 +95,7 @@ package object workbench extends sbt.Plugin {
     }
   )
 
-  class SocketServer(bootstrapSnippet: String) extends Actor{
+  class SocketServer() extends Actor{
     val sockets: mutable.Set[ActorRef] = mutable.Set.empty
     def receive = {
       case x: Tcp.Connected => sender ! Tcp.Register(self) // normal Http server init
@@ -111,7 +115,7 @@ package object workbench extends sbt.Plugin {
       case Sockets.Upgraded =>
         sockets.add(sender)
         println("Browser Open n=" + sockets.size)
-        self send Json.arr("eval", bootstrapSnippet)
+        self send Json.arr("boot")
 
       case f @ Frame(fin, rsv, Text, maskingKey, data) =>
         sockets.foreach(_ ! f.copy(maskingKey=None))

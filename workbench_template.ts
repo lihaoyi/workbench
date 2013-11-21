@@ -1,8 +1,22 @@
 var socket = (function(){
     var open = false
     var shadowBody = null
+    var bootSnippet = "<bootSnippet>"
     window.onload = function(){
         shadowBody = document.body.cloneNode()
+    }
+    window.addEventListener("keydown", function (event) {
+        if(event.keyCode==13 && event.ctrlKey && event.altKey && event.shiftKey) {
+            clear()
+            eval(bootSnippet)
+        }
+    })
+    function clear(){
+        document.body = shadowBody.cloneNode()
+        for(var i = 0; i < 99999; i++){
+            clearTimeout(i)
+            clearInterval(i)
+        }
     }
 
     var start = function(){
@@ -19,11 +33,7 @@ var socket = (function(){
                 location.reload()
             }
             if (data[0] == "clear"){
-                document.body = shadowBody.cloneNode()
-                for(var i = 0; i < 99999; i++){
-                    clearTimeout(i)
-                    clearInterval(i)
-                }
+                clear()
             }
             if (data[0] == "run"){
                 var tag = document.createElement("script")
@@ -38,8 +48,8 @@ var socket = (function(){
                 }
                 document.head.appendChild(tag)
             }
-            if (data[0] == "eval"){
-                eval(data[1])
+            if (data[0] == "boot"){
+                eval(bootSnippet)
             }
             if (data[0] == "print") console[data[1]](data[2])
         }
