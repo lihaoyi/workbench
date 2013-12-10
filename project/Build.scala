@@ -8,7 +8,7 @@ object Build extends sbt.Build {
   override lazy val projects = Seq(root)
   lazy val root =
     Project("scala-js-workbench", file("."))
-      .dependsOn(uri("../WebSockets"))
+      .dependsOn(uri("git://github.com/lihaoyi/SprayWebSockets.git"))
       .settings(
         sbtPlugin := true,
         (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.ts").get},

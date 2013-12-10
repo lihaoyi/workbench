@@ -62,20 +62,21 @@ package object workbench extends sbt.Plugin {
           def trace(t: => Throwable): Unit = server.value.send(Json.arr("print", "error", t.toString))
         }
       }
+      clientLogger.setSuccessEnabled(true)
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
     },
     refreshBrowsers := {
-      streams.value.log("Reloading Pages...")
+      streams.value.log.info("workbench: Reloading Pages...")
       server.value.send(Json.arr("reload"))
     },
     updateBrowsers := {
-      println("partialReload")
+
       server.value send Json.arr("clear")
       ((crossTarget in Compile).value * "*.js").get.map{ (x: File) =>
-        println("Checking " + x.getName)
+        streams.value.log.info("workbench: Checking " + x.getName)
         FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
-          println("Refreshing " + x.getName)
+          streams.value.log.info("workbench: Refreshing " + x.getName)
           server.value send Json.arr("run", f.head.getAbsolutePath, bootSnippet.value)
           f
         }(Set(x))
@@ -91,7 +92,7 @@ package object workbench extends sbt.Plugin {
         val outputFile = (crossTarget in Compile).value / fileName.value
         IO.write(outputFile, transformed)
         Set(outputFile)
-      }(Set(new File(getClass.getClassLoader.getResource("workbench_template.ts").getPath))).head
+      }(Set(new File(getClass.getClassLoader.getResource("workbench_template.ts").toURI))).head
     }
   )
 
