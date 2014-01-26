@@ -3,7 +3,7 @@ var socket = (function(){
     var shadowBody = null
     var bootSnippet = "<bootSnippet>"
     window.onload = function(){
-        shadowBody = document.body.cloneNode()
+        shadowBody = document.body.cloneNode(true)
     }
     window.addEventListener("keydown", function (event) {
         if(event.keyCode==13 && event.ctrlKey && event.altKey && event.shiftKey) {
@@ -12,7 +12,7 @@ var socket = (function(){
         }
     })
     function clear(){
-        document.body = shadowBody.cloneNode()
+        document.body = shadowBody.cloneNode(true)
         for(var i = 0; i < 99999; i++){
             clearTimeout(i)
             clearInterval(i)
