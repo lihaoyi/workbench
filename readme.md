@@ -19,9 +19,13 @@ To Use
 - Modify the `packageJS` task with the following setting, to make it generate the snippet of `workbench.js` file needed to communicate with SBT:
 
 ```scala
+import scala.js.workbench.Plugin._
+
+buildSettingsX
+
 packageJS in Compile := {
-    (packageJS in Compile).value :+ scala.js.workbench.generateClient.value
-  }
+  (packageJS in Compile).value :+ scala.js.workbench.generateClient.value
+}
 ```
 
 - Define your `bootSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own. You do not also need to include this on the page itself, as scala-js-workbench will execute this snippet when the browser first connects.

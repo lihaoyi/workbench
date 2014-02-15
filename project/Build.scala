@@ -10,6 +10,10 @@ object Build extends sbt.Build {
     Project("scala-js-workbench", file("."))
       .dependsOn(uri("git://github.com/lihaoyi/SprayWebSockets.git"))
       .settings(
+        name := "scala-js-workbench",
+        version := "0.1-SNAPSHOT",
+        
+        organization := "com.lihaoyi.workbench",
         sbtPlugin := true,
         (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.ts").get},
         resolvers += "spray repo" at "http://repo.spray.io",

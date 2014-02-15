@@ -1,4 +1,4 @@
-package scala.js
+package scala.js.workbench
 
 import akka.actor.{Props, ActorRef, Actor, ActorSystem}
 import akka.io
@@ -20,7 +20,7 @@ import spray.http.{StatusCodes, HttpResponse, HttpRequest}
 import spray.http.HttpHeaders.Connection
 import spray.can.server.websockets.model.OpCode.Text
 
-package object workbench extends sbt.Plugin {
+object Plugin extends sbt.Plugin {
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
   val generateClient = taskKey[File]("generates a .js file that can be embedded in your web page")
