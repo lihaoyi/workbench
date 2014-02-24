@@ -28,6 +28,7 @@ object Plugin extends sbt.Plugin {
   val server = settingKey[ActorRef]("local websocket server")
   val fileName = settingKey[String]("name of the generated javascript file")
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
+ 
   implicit val system = ActorSystem(
     "SystemLol",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
@@ -107,6 +108,7 @@ object Plugin extends sbt.Plugin {
         if (req.headers.contains(Connection("Upgrade"))){
           sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), self)
         }else{
+          req.
           sender ! HttpResponse(
             StatusCodes.OK,
             entity="i am a cow"
