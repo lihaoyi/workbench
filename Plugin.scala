@@ -22,6 +22,7 @@ import spray.can.server.websockets.model.OpCode.Text
 import spray.http.HttpRequest
 import play.api.libs.json.JsArray
 import spray.http.HttpResponse
+import java.io.IOException
 
 object Plugin extends sbt.Plugin {
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
@@ -113,16 +114,19 @@ object Plugin extends sbt.Plugin {
         }else{
 
           import java.nio.file.{Files, Paths}
+          try{
+            val data = Files.readAllBytes(Paths.get(req.uri.path.toString()))
 
-          val data = Files.readAllBytes(Paths.get(req.uri.path.toString()))
-
-          sender ! HttpResponse(
-            StatusCodes.OK,
-            entity=HttpEntity.apply(MediaTypes.`text/html`, data),
-            headers=List(
-              `Access-Control-Allow-Origin`(spray.http.AllOrigins)
+            sender ! HttpResponse(
+              StatusCodes.OK,
+              entity=HttpEntity.apply(MediaTypes.`text/html`, data),
+              headers=List(
+                `Access-Control-Allow-Origin`(spray.http.AllOrigins)
+              )
             )
-          )
+          }catch{case _: IOException =>
+            sender ! HttpResponse(StatusCodes.NotFound)
+          }
         }
 
       case Sockets.Upgraded =>
