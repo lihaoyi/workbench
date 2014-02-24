@@ -1,6 +1,6 @@
 import sbt.Keys._
 
-lazy val root = project.dependsOn(uri("git://github.com/lihaoyi/SprayWebSockets.git"))
+lazy val root = project.in(file(".")).dependsOn(uri("git://github.com/lihaoyi/SprayWebSockets.git"))
 
 name := "scala-js-workbench"
 

@@ -16,9 +16,12 @@ import Keys._
 import com.typesafe.config.ConfigFactory
 import scala.collection.mutable
 import akka.io.Tcp
-import spray.http.{StatusCodes, HttpResponse, HttpRequest}
-import spray.http.HttpHeaders.Connection
+import spray.http._
+import spray.http.HttpHeaders.{`Access-Control-Allow-Origin`, Connection}
 import spray.can.server.websockets.model.OpCode.Text
+import spray.http.HttpRequest
+import play.api.libs.json.JsArray
+import spray.http.HttpResponse
 
 object Plugin extends sbt.Plugin {
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
@@ -108,10 +111,17 @@ object Plugin extends sbt.Plugin {
         if (req.headers.contains(Connection("Upgrade"))){
           sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), self)
         }else{
-          req.
+
+          import java.nio.file.{Files, Paths}
+
+          val data = Files.readAllBytes(Paths.get(req.uri.path.toString()))
+
           sender ! HttpResponse(
             StatusCodes.OK,
-            entity="i am a cow"
+            entity=HttpEntity.apply(MediaTypes.`text/html`, data),
+            headers=List(
+              `Access-Control-Allow-Origin`(spray.http.AllOrigins)
+            )
           )
         }
 
