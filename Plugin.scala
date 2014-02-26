@@ -1,10 +1,10 @@
-package scala.js.workbench
+package com.lihaoyi.workbench
 
 import akka.actor.{Props, ActorRef, Actor, ActorSystem}
 import akka.io
 import akka.util.ByteString
 import play.api.libs.json.JsArray
-
+import java.nio.file.{Files, Paths}
 import play.api.libs.json.Json
 import spray.can.Http
 import spray.can.server.websockets.model.Frame
@@ -25,11 +25,12 @@ import spray.http.HttpResponse
 import java.io.IOException
 
 object Plugin extends sbt.Plugin {
+
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
   val generateClient = taskKey[File]("generates a .js file that can be embedded in your web page")
   val localUrl = settingKey[(String, Int)]("localUrl")
-  val server = settingKey[ActorRef]("local websocket server")
+  private[this] val server = settingKey[ActorRef]("local websocket server")
   val fileName = settingKey[String]("name of the generated javascript file")
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
  
@@ -82,7 +83,13 @@ object Plugin extends sbt.Plugin {
         streams.value.log.info("workbench: Checking " + x.getName)
         FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
           streams.value.log.info("workbench: Refreshing " + x.getName)
-          server.value send Json.arr("run", f.head.getAbsolutePath, bootSnippet.value)
+          val cwd = Paths.get(new File("").getAbsolutePath)
+          val filePath = Paths.get(f.head.getAbsolutePath)
+          server.value send Json.arr(
+            "run",
+            "/" + cwd.relativize(filePath).toString,
+            bootSnippet.value
+          )
           f
         }(Set(x))
       }
@@ -113,13 +120,20 @@ object Plugin extends sbt.Plugin {
           sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), self)
         }else{
 
-          import java.nio.file.{Files, Paths}
-          try{
-            val data = Files.readAllBytes(Paths.get(req.uri.path.toString()))
 
+          try{
+            val data = Files.readAllBytes(
+              Paths.get(req.uri.path.toString.drop(1))
+            )
+            val mimeType: ContentType = req.uri.path.toString.split('.').lastOption match {
+              case Some("css") => MediaTypes.`text/css`
+              case Some("html") => MediaTypes.`text/html`
+              case Some("js") => MediaTypes.`application/javascript`
+              case _ => ContentTypes.`text/plain`
+            }
             sender ! HttpResponse(
               StatusCodes.OK,
-              entity=HttpEntity.apply(MediaTypes.`text/html`, data),
+              entity=HttpEntity.apply(mimeType, data),
               headers=List(
                 `Access-Control-Allow-Origin`(spray.http.AllOrigins)
               )
