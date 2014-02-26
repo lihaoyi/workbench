@@ -101,7 +101,7 @@ object Plugin extends sbt.Plugin {
             .replace("<host>", localUrl.value._1)
             .replace("<port>", localUrl.value._2.toString)
             .replace("<bootSnippet>", bootSnippet.value)
-        val outputFile = (crossTarget in Compile).value / fileName.value
+        val outputFile = (classDirectory in Compile).value / fileName.value
         IO.write(outputFile, transformed)
         Set(outputFile)
       }(Set(new File(getClass.getClassLoader.getResource("workbench_template.ts").toURI))).head
