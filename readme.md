@@ -5,32 +5,30 @@ scala-js-workbench
 
 A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to make development in the browser more pleasant.
 
-- Spins up a local websocket server on (by default) localhost:12345, whenever you're in the SBT console. Navigate to localhost:12345 in the browser and it'll show a simple page tell you it's alive.
-- Generates a `workbench.js` file in your packageJS output directory, which acts a stub for SBT to control the browser. You'll need to include this in your HTML page manually via a script tag.
+- Spins up a local web server on (by default) `localhost:12345`, whenever you're in the SBT console. Navigate to localhost:12345 in the browser and it'll show a simple page tell you it's alive. You can access any file within your project directory by going to `localhost:12345/path/to/file` in a browser.
 - Forwards all SBT logging from your SBT console to the browser console, so you can see what's going on (e.g. when the project is recompiling) without having to flip back and forth between browser and terminal.
 - Sends commands to tell the connected browsers to refresh/update every time your Scala.Js project completes a `packageJS`.
+
+Check out the [example app](https://github.com/lihaoyi/workbench-example-app) for a plug-and-play example of workbench in action.
 
 To Use
 ------
 
 - Clone this from Github into a local directory
-- Add a dependency onto the scala-js-workbench project, e.g. in `project/project/Build.sbt`
-- Add `scala.js.workbench.buildSettingsX` to your project settings in `project/Build.sbt`
-- Modify the `packageJS` task with the following setting, to make it generate the snippet of `workbench.js` file needed to communicate with SBT:
+- Add a `addSbtPlugin("com.lihaoyi" % "workbench" % "0.1")` to your `project/build.sbt`
+- Add `workbenchSettings` to your project settings in `build.sbt`:
 
 ```scala
 import scala.js.workbench.Plugin._
 
-buildSettingsX
-
-packageJS in Compile := {
-  (packageJS in Compile).value :+ scala.js.workbench.generateClient.value
-}
+workbenchSettings
 ```
 
-- Define your `bootSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own. You do not also need to include this on the page itself, as scala-js-workbench will execute this snippet when the browser first connects.
+- Define your `bootSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own.
+- Include a `<script src="/workbench.js"></script>` tag in your HTML page to connect the page to workbench.
+- Open the desired HTML file via it's `localhost` URL, e.g. `localhost:12345/target/scala-2.10/classes/index.html`. This should serve up the HTML file and connect it to workbench.
 
-Now you have a choice of what you want to do when the code compiles:
+You have a choice of what you want to do when the code compiles:
 
 refreshBrowsers
 ===============
@@ -61,11 +59,7 @@ You can force the clean-up-and-reboot to happen from the browser via the shortcu
 
 -------
 
-With that done, when you open a HTML page containing `workbench.js`, if you have sbt running and scala-js-workbench enabled, it should connect over websockets and start forwarding our SBT log to the browser javascript console. You can now run the `refreshBrowsers` and `updateBrowsers` commands to tell it to refresh itself, and if you set up the `triggeredBy` rule as shown above, it should refresh/update itself automatically at the end of every `packageJS` cycle.
-
-Currently still sort of flaky; in particular, it does not behave properly across `reload`s in SBT, so if the refreshes stop working you may need to `exit` and restart SBT. Also, the initial page-load/refresh while the caches are first being set up may cause things to misbehave, but refreshing the page manually once should be enough for it to stabilize.
-
-Depends on [SprayWebSockets](https://github.com/lihaoyi/SprayWebSockets) for its websocket server; this will need to be checked out into a local directory WebSockets next to your SBT project folder. See this repo (https://github.com/lihaoyi/scala-js-game-2) for a usage example.
+With this done, you should be receiving the SBT logspam (compilation, warnings, errors) in your browse console, and the page should be automatically refreshing/updating when the application gets recompiled. If you have problems setting this up, try starting from the [example app](https://github.com/lihaoyi/workbench-example-app) and working from there.
 
 Pull requests welcome!
 
