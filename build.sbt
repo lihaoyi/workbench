@@ -2,7 +2,7 @@ import sbt.Keys._
 
 name := "workbench"
 
-version := "0.1"
+version := "0.1.1"
 
 organization := "com.lihaoyi"
 
@@ -43,8 +43,8 @@ resolvers += "spray repo" at "http://repo.spray.io"
 resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
-  "io.spray" % "spray-can" % "1.2.0",
-  "io.spray" % "spray-routing" % "1.2.0",
-  "com.typesafe.akka"   %%  "akka-actor"    % "2.2.3",
-  "com.typesafe.play" %% "play-json" % "2.2.0-RC1"
+  "io.spray" % "spray-can" % "1.3.0",
+  "io.spray" % "spray-routing" % "1.3.0",
+  "com.typesafe.akka"   %%  "akka-actor"    % "2.3.0",
+  "com.typesafe.play" %% "play-json" % "2.2.2"
 )
