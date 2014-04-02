@@ -15,7 +15,7 @@ To Use
 ------
 
 - Clone this from Github into a local directory
-- Add a `addSbtPlugin("com.lihaoyi" % "workbench" % "0.1.1")` to your `project/build.sbt`
+- Add a `addSbtPlugin("com.lihaoyi" % "workbench" % "0.1.2")` to your `project/build.sbt`
 - Add `workbenchSettings` to your project settings in `build.sbt`:
 
 ```scala

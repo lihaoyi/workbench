@@ -2,7 +2,7 @@ package com.lihaoyi.workbench
 
 import akka.actor.{ActorRef, Actor, ActorSystem}
 import scala.concurrent.duration._
-import java.nio.file.{Paths}
+
 import play.api.libs.json.Json
 import sbt._
 import Keys._
@@ -19,6 +19,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
     classLoader = ActorSystem.getClass.getClassLoader
   )
+
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
   val localUrl = settingKey[(String, Int)]("localUrl")
@@ -44,15 +45,16 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
         // a new actor waiting replaces the old one
         waitingActor = Some(a)
       case (a: ActorRef, None, msgs) =>
-        respond(a, "[" + msgs.mkString(",") + "]")
+
+        respond(a, JsArray(msgs).toString)
         queuedMessages = Nil
       case (msg: JsArray, None, msgs) =>
         queuedMessages = msg :: msgs
       case (msg: JsArray, Some(a), Nil) =>
-        respond(a, "[" + msg + "]")
+        respond(a, Json.arr(msg).toString)
         waitingActor = None
       case (Clear, Some(a), Nil) =>
-        respond(a, "[]")
+        respond(a, Json.arr().toString)
         waitingActor = None
     }
   })
@@ -83,11 +85,10 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
         streams.value.log.info("workbench: Checking " + x.getName)
         FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
           streams.value.log.info("workbench: Refreshing " + x.getName)
-          val cwd = Paths.get(new File("").getAbsolutePath)
-          val filePath = Paths.get(f.head.getAbsolutePath)
+
           pubSub ! Json.arr(
             "run",
-            "/" + cwd.relativize(filePath).toString,
+            "/" + f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length),
             bootSnippet.value
           )
           f
@@ -100,7 +101,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
           complete{
             IO.readStream(
               getClass.getClassLoader
-                      .getResourceAsStream("workbench_template.ts")
+                      .getResourceAsStream("workbench_template.js")
             ).replace("<host>", localUrl.value._1)
              .replace("<port>", localUrl.value._2.toString)
              .replace("<bootSnippet>", bootSnippet.value)

@@ -2,7 +2,7 @@ import sbt.Keys._
 
 name := "workbench"
 
-version := "0.1.1"
+version := "0.1.2"
 
 organization := "com.lihaoyi"
 
@@ -12,7 +12,7 @@ sbtPlugin := true
 publishArtifact in Test := false
 
 publishTo <<= version { (v: String) =>
-  Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
+  Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
 }
 
 pomExtra := (
@@ -36,15 +36,13 @@ pomExtra := (
     </developers>
   )
 
-(resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.ts").get}
-
-resolvers += "spray repo" at "http://repo.spray.io"
+(resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.js").get}
 
 resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
-  "io.spray" % "spray-can" % "1.3.0",
-  "io.spray" % "spray-routing" % "1.3.0",
+  "io.spray" % "spray-can" % "1.3.1",
+  "io.spray" % "spray-routing" % "1.3.1",
   "com.typesafe.akka"   %%  "akka-actor"    % "2.3.0",
   "com.typesafe.play" %% "play-json" % "2.2.2"
 )
