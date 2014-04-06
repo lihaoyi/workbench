@@ -3,6 +3,7 @@
     var bootSnippet = "<bootSnippet>"
     window.onload = function(){
         shadowBody = document.body.cloneNode(true)
+        start()
     }
     window.addEventListener("keydown", function (event) {
         if(event.keyCode==13 && event.ctrlKey && event.altKey && event.shiftKey) {
@@ -65,5 +66,4 @@
         }
         req.send()
     }
-    start()
 })()
