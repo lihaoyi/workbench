@@ -25,6 +25,8 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
   val localUrl = settingKey[(String, Int)]("localUrl")
   private[this] val routes = settingKey[Unit]("local websocket server")
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
+  val reloadPrefix = settingKey[Option[String]]("Use this if you want the javascript to be reloaded from a specific address")
+  val javascriptUrlGenerator = settingKey[String => String]("Transform the javascript filepath to a server url")
 
   val pubSub = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
@@ -61,6 +63,8 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
+    reloadPrefix := None,
+    javascriptUrlGenerator := {s => s},
 
     extraLoggers := {
       val clientLogger = FullLogger{
@@ -86,9 +90,11 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
         FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
           streams.value.log.info("workbench: Refreshing " + x.getName)
 
+          val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
+
           pubSub ! Json.arr(
             "run",
-            "/" + f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length),
+            "/" + javascriptUrlGenerator.value(fsPath),
             bootSnippet.value
           )
           f
@@ -105,6 +111,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
             ).replace("<host>", localUrl.value._1)
              .replace("<port>", localUrl.value._2.toString)
              .replace("<bootSnippet>", bootSnippet.value)
+             .replace("<reloadPrefix>", reloadPrefix.value.getOrElse(""))
           }
         } ~
         getFromDirectory(".")
