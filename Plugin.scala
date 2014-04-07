@@ -25,8 +25,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
   val localUrl = settingKey[(String, Int)]("localUrl")
   private[this] val routes = settingKey[Unit]("local websocket server")
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
-  val reloadPrefix = settingKey[Option[String]]("Use this if you want the javascript to be reloaded from a specific address")
-  val javascriptUrlGenerator = settingKey[String => String]("Transform the javascript filepath to a server url")
+  val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
 
   val pubSub = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
@@ -63,9 +62,25 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
-    reloadPrefix := None,
-    javascriptUrlGenerator := {s => s},
-
+    updatedJS := {
+      var files: List[String] = Nil
+      ((crossTarget in Compile).value * "*.js").get.map {
+        (x: File) =>
+          streams.value.log.info("workbench: Checking " + x.getName)
+          FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
+            (f: Set[File]) =>
+              val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
+              files = fsPath :: files
+              f
+          }(Set(x))
+      }
+      files
+    },
+    updatedJS <<= (updatedJS, localUrl) map { (paths, localUrl) =>
+      paths.map { path =>
+        s"http://${localUrl._1}:${localUrl._2}$path"
+      }
+    },
     extraLoggers := {
       val clientLogger = FullLogger{
         new Logger {
@@ -84,21 +99,20 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
       pubSub ! Json.arr("reload")
     },
     updateBrowsers := {
-      pubSub ! Json.arr("clear")
-      ((crossTarget in Compile).value * "*.js").get.map{ (x: File) =>
-        streams.value.log.info("workbench: Checking " + x.getName)
-        FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
-          streams.value.log.info("workbench: Refreshing " + x.getName)
+      val changed = updatedJS.value
+      // There is no point in clearing the browser if no js files have changed.
+      if (changed.length > 0) {
+        pubSub ! Json.arr("clear")
 
-          val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
-
-          pubSub ! Json.arr(
-            "run",
-            "/" + javascriptUrlGenerator.value(fsPath),
-            bootSnippet.value
-          )
-          f
-        }(Set(x))
+        changed.map {
+          path =>
+            streams.value.log.info("workbench: Refreshing " + path)
+            pubSub ! Json.arr(
+              "run",
+              path,
+              bootSnippet.value
+            )
+        }
       }
     },
     routes := startServer(localUrl.value._1, localUrl.value._2){
@@ -111,7 +125,6 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
             ).replace("<host>", localUrl.value._1)
              .replace("<port>", localUrl.value._2.toString)
              .replace("<bootSnippet>", bootSnippet.value)
-             .replace("<reloadPrefix>", reloadPrefix.value.getOrElse(""))
           }
         } ~
         getFromDirectory(".")

@@ -1,7 +1,6 @@
 (function(){
     var shadowBody = null
     var bootSnippet = "<bootSnippet>"
-    var reloadPrefix = "<reloadPrefix>"
     window.onload = function(){
         shadowBody = document.body.cloneNode(true)
     }
@@ -42,13 +41,8 @@
                     if (data[0] == "run"){
                         var tag = document.createElement("script")
                         var loaded = false
-                        var serverPrefix
 
-                        if (reloadPrefix === "")
-                          serverPrefix = "http://<host>:<port>" 
-                        else
-                          serverPrefix = reloadPrefix
-                        tag.setAttribute("src", serverPrefix + data[1])
+                        tag.setAttribute("src", data[1])
 
                         var bootSnippet = data[2]
                         if (bootSnippet){
