@@ -64,7 +64,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
     localUrl := ("localhost", 12345),
     updatedJS := {
       var files: List[String] = Nil
-      ((crossTarget in Compile).value * "*.js").get.map {
+      ((crossTarget in Compile).value * "*.js").get.foreach {
         (x: File) =>
           streams.value.log.info("workbench: Checking " + x.getName)
           FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
@@ -104,7 +104,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
       if (changed.length > 0) {
         pubSub ! Json.arr("clear")
 
-        changed.map {
+        changed.foreach {
           path =>
             streams.value.log.info("workbench: Refreshing " + path)
             pubSub ! Json.arr(
