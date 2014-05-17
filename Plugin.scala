@@ -25,6 +25,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
   val localUrl = settingKey[(String, Int)]("localUrl")
   private[this] val routes = settingKey[Unit]("local websocket server")
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
+  val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
 
   val pubSub = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
@@ -61,7 +62,25 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
-
+    updatedJS := {
+      var files: List[String] = Nil
+      ((crossTarget in Compile).value * "*.js").get.foreach {
+        (x: File) =>
+          streams.value.log.info("workbench: Checking " + x.getName)
+          FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
+            (f: Set[File]) =>
+              val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
+              files = fsPath :: files
+              f
+          }(Set(x))
+      }
+      files
+    },
+    updatedJS <<= (updatedJS, localUrl) map { (paths, localUrl) =>
+      paths.map { path =>
+        s"http://${localUrl._1}:${localUrl._2}$path"
+      }
+    },
     extraLoggers := {
       val clientLogger = FullLogger{
         new Logger {
@@ -80,19 +99,20 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
       pubSub ! Json.arr("reload")
     },
     updateBrowsers := {
-      pubSub ! Json.arr("clear")
-      ((crossTarget in Compile).value * "*.js").get.map{ (x: File) =>
-        streams.value.log.info("workbench: Checking " + x.getName)
-        FileFunction.cached(streams.value.cacheDirectory /  x.getName, FilesInfo.lastModified, FilesInfo.lastModified){ (f: Set[File]) =>
-          streams.value.log.info("workbench: Refreshing " + x.getName)
+      val changed = updatedJS.value
+      // There is no point in clearing the browser if no js files have changed.
+      if (changed.length > 0) {
+        pubSub ! Json.arr("clear")
 
-          pubSub ! Json.arr(
-            "run",
-            "/" + f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length),
-            bootSnippet.value
-          )
-          f
-        }(Set(x))
+        changed.foreach {
+          path =>
+            streams.value.log.info("workbench: Refreshing " + path)
+            pubSub ! Json.arr(
+              "run",
+              path,
+              bootSnippet.value
+            )
+        }
       }
     },
     routes := startServer(localUrl.value._1, localUrl.value._2){

@@ -42,7 +42,9 @@
                     if (data[0] == "run"){
                         var tag = document.createElement("script")
                         var loaded = false
-                        tag.setAttribute("src", "http://<host>:<port>" + data[1])
+
+                        tag.setAttribute("src", data[1])
+
                         var bootSnippet = data[2]
                         if (bootSnippet){
                             tag.onreadystatechange = tag.onload = function() {
