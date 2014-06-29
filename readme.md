@@ -11,34 +11,56 @@ A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to ma
 
 Check out the [example app](https://github.com/lihaoyi/workbench-example-app) for a plug-and-play example of workbench in action.
 
-To Use
-------
+Installation
+------------
 
-- Clone this from Github into a local directory
-- Add a `addSbtPlugin("com.lihaoyi" % "workbench" % "0.1.2")` to your `project/build.sbt`
-- Add `workbenchSettings` to your project settings in `build.sbt`:
-
+- Add to your `project/plugins.sbt`
 ```scala
-import scala.js.workbench.Plugin._
+resolvers += "spray repo" at "http://repo.spray.io"
 
+resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.1.2")
+```
+- Add to your `build.sbt`
+```scala
 workbenchSettings
 ```
+If you're using `project/Build.scala` or similar, also  add:
+```scala
+import scala.js.workbench.Plugin._
+```
+- So that workbench knows how to restart your application, specify a `bootSnippet` property in your SBT build, which is a javascript command to start your application, e.g.
+```scala
+bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"
+```
+- For all web pages you would like to integrate with workbench, add
+```html
+<script type="text/javascript" src="/workbench.js"></script>
+```
 
-- Define your `bootSnippet`, which is a piece of javascript to be run to start your application, e.g. `bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"`. scala-js-workbench requires this so it can use it to re-start your application later on its own.
-- Include a `<script src="/workbench.js"></script>` tag in your HTML page to connect the page to workbench.
-- Open the desired HTML file via it's `localhost` URL, e.g. `localhost:12345/target/scala-2.10/classes/index.html`. This should serve up the HTML file and connect it to workbench.
+### Usage
 
-You have a choice of what you want to do when the code compiles:
+Once the above installation steps are completed, simply open your desired HTML file via `http://localhost:12345` with the URL path being any file part relative to your project root. e.g. `localhost:12345/target/scala-2.10/classes/index.html`. This should serve up the HTML file and connect it to workbench.
 
-refreshBrowsers
-===============
-`refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)`
+
+# Live Reloading
+
+You have a choice of what you want to do when the code compiles.
+
+#### refreshBrowsers
+
+```scala
+refreshBrowsers <<= refreshBrowsers.triggeredBy(packageJS in Compile)
+```
 
 This will to make any client browsers refresh every time `packageJS` completes, saving you flipping back and forth between SBT and the browser to refresh the page after compilation is finished.
 
-updateBrowsers
-==============
-`updateBrowsers <<= updateBrowsers.triggeredBy(packageJS in Compile)`
+#### updateBrowsers
+
+```scala
+updateBrowsers <<= updateBrowsers.triggeredBy(packageJS in Compile)
+```
 
 This will attempt to perform an update without refreshing the page every time `packageJS` completes, which is much faster than a full page refresh since the browser doesn't need to parse/exec the huge blob of `extdeps.js`. This involves:
 
