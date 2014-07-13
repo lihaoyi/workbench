@@ -32,7 +32,7 @@ import scala.js.workbench.Plugin._
 ```
 - So that workbench knows how to restart your application, specify a `bootSnippet` property in your SBT build, which is a javascript command to start your application, e.g.
 ```scala
-bootSnippet := "ScalaJS.modules.example_ScalaJSExample().main();"
+bootSnippet := "ScalaJSExample().main();"
 ```
 - For all web pages you would like to integrate with workbench, add
 ```html
