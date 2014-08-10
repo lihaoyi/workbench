@@ -13,52 +13,20 @@ import spray.http.{AllOrigins, HttpResponse}
 import spray.routing.SimpleRoutingApp
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 
-object Plugin extends sbt.Plugin with SimpleRoutingApp{
-  implicit val system = ActorSystem(
-    "SystemLol",
-    config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
-    classLoader = ActorSystem.getClass.getClassLoader
-  )
+object Plugin extends sbt.Plugin {
+
+
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
   val localUrl = settingKey[(String, Int)]("localUrl")
-  private[this] val routes = settingKey[Unit]("local websocket server")
+  private[this] val server = settingKey[Server]("local websocket server")
+
+
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
   val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
 
-  val pubSub = actor(new Actor{
-    var waitingActor: Option[ActorRef] = None
-    var queuedMessages = List[Js.Value]()
-    case object Clear
-    import system.dispatcher
 
-    system.scheduler.schedule(0 seconds, 10 seconds, self, Clear)
-    def respond(a: ActorRef, s: String) = {
-      a ! HttpResponse(
-        entity = s,
-        headers = List(`Access-Control-Allow-Origin`(AllOrigins))
-      )
-    }
-    def receive = (x: Any) => (x, waitingActor, queuedMessages) match {
-      case (a: ActorRef, _, Nil) =>
-        // Even if there's someone already waiting,
-        // a new actor waiting replaces the old one
-        waitingActor = Some(a)
-      case (a: ActorRef, None, msgs) =>
-
-        respond(a, Json.write(Js.Array(msgs)))
-        queuedMessages = Nil
-      case (msg: Js.Array, None, msgs) =>
-        queuedMessages = msg :: msgs
-      case (msg: Js.Array, Some(a), Nil) =>
-        respond(a, Json.write(Js.Array(Seq(msg))))
-        waitingActor = None
-      case (Clear, Some(a), Nil) =>
-        respond(a, Json.write(Js.Array(Nil)))
-        waitingActor = None
-    }
-  })
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
@@ -85,9 +53,9 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
       val clientLogger = FullLogger{
         new Logger {
           def log(level: Level.Value, message: => String) =
-            if(level >= Level.Info) pubSub ! upickle.writeJs(Seq("print", level.toString(), message))
-          def success(message: => String) = pubSub ! upickle.writeJs(Seq("print", "info", message))
-          def trace(t: => Throwable) = pubSub ! upickle.writeJs(Seq("print", "error", t.toString))
+            if(level >= Level.Info) server.value msg Seq("print", level.toString, message)
+          def success(message: => String) = server.value msg Seq("print", "info", message)
+          def trace(t: => Throwable) = server.value msg Seq("print", "error", t.toString)
         }
       }
       clientLogger.setSuccessEnabled(true)
@@ -96,45 +64,33 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
     },
     refreshBrowsers := {
       streams.value.log.info("workbench: Reloading Pages...")
-      pubSub ! upickle.writeJs(Seq("reload"))
+      server.value msg Seq("reload")
     },
     updateBrowsers := {
       val changed = updatedJS.value
       // There is no point in clearing the browser if no js files have changed.
       if (changed.length > 0) {
-        pubSub ! upickle.writeJs(Seq("clear"))
+        server.value msg Seq("clear")
 
         changed.foreach {
           path =>
             streams.value.log.info("workbench: Refreshing " + path)
-            pubSub ! upickle.writeJs(Seq(
+            server.value msg Seq(
               "run",
               path,
               bootSnippet.value
-            ))
+            )
         }
       }
     },
-    routes := startServer(localUrl.value._1, localUrl.value._2){
-      get{
-        path("workbench.js"){
-          complete{
-            IO.readStream(
-              getClass.getClassLoader
-                      .getResourceAsStream("workbench_template.js")
-            ).replace("<host>", localUrl.value._1)
-             .replace("<port>", localUrl.value._2.toString)
-             .replace("<bootSnippet>", bootSnippet.value)
-          }
-        } ~
-        getFromDirectory(".")
-      } ~
-      post{
-        path("notifications"){ ctx =>
-          pubSub ! ctx.responder
-        }
-      }
-
+    server := {
+      new Server(localUrl.value._1, localUrl.value._2, bootSnippet.value)
+    },
+    onLoad := { state =>
+      state
+    },
+    onUnload := { state =>
+      state
     }
   )
 }
