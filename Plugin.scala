@@ -3,12 +3,12 @@ package com.lihaoyi.workbench
 import akka.actor.{ActorRef, Actor, ActorSystem}
 import scala.concurrent.duration._
 
-import play.api.libs.json.Json
+
 import sbt._
 import Keys._
 import akka.actor.ActorDSL._
 import com.typesafe.config.ConfigFactory
-import play.api.libs.json.JsArray
+import upickle._
 import spray.http.{AllOrigins, HttpResponse}
 import spray.routing.SimpleRoutingApp
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
@@ -29,7 +29,7 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
 
   val pubSub = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
-    var queuedMessages = List[JsArray]()
+    var queuedMessages = List[Js.Value]()
     case object Clear
     import system.dispatcher
 
@@ -47,15 +47,15 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
         waitingActor = Some(a)
       case (a: ActorRef, None, msgs) =>
 
-        respond(a, JsArray(msgs).toString)
+        respond(a, Json.write(Js.Array(msgs)))
         queuedMessages = Nil
-      case (msg: JsArray, None, msgs) =>
+      case (msg: Js.Array, None, msgs) =>
         queuedMessages = msg :: msgs
-      case (msg: JsArray, Some(a), Nil) =>
-        respond(a, Json.arr(msg).toString)
+      case (msg: Js.Array, Some(a), Nil) =>
+        respond(a, Json.write(Js.Array(Seq(msg))))
         waitingActor = None
       case (Clear, Some(a), Nil) =>
-        respond(a, Json.arr().toString)
+        respond(a, Json.write(Js.Array(Nil)))
         waitingActor = None
     }
   })
@@ -85,9 +85,9 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
       val clientLogger = FullLogger{
         new Logger {
           def log(level: Level.Value, message: => String) =
-            if(level >= Level.Info) pubSub ! Json.arr("print", level.toString(), message)
-          def success(message: => String) = pubSub ! Json.arr("print", "info", message)
-          def trace(t: => Throwable) = pubSub ! Json.arr("print", "error", t.toString)
+            if(level >= Level.Info) pubSub ! upickle.writeJs(Seq("print", level.toString(), message))
+          def success(message: => String) = pubSub ! upickle.writeJs(Seq("print", "info", message))
+          def trace(t: => Throwable) = pubSub ! upickle.writeJs(Seq("print", "error", t.toString))
         }
       }
       clientLogger.setSuccessEnabled(true)
@@ -96,22 +96,22 @@ object Plugin extends sbt.Plugin with SimpleRoutingApp{
     },
     refreshBrowsers := {
       streams.value.log.info("workbench: Reloading Pages...")
-      pubSub ! Json.arr("reload")
+      pubSub ! upickle.writeJs(Seq("reload"))
     },
     updateBrowsers := {
       val changed = updatedJS.value
       // There is no point in clearing the browser if no js files have changed.
       if (changed.length > 0) {
-        pubSub ! Json.arr("clear")
+        pubSub ! upickle.writeJs(Seq("clear"))
 
         changed.foreach {
           path =>
             streams.value.log.info("workbench: Refreshing " + path)
-            pubSub ! Json.arr(
+            pubSub ! upickle.writeJs(Seq(
               "run",
               path,
               bootSnippet.value
-            )
+            ))
         }
       }
     },

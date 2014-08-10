@@ -41,6 +41,6 @@ resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/"
 libraryDependencies ++= Seq(
   "io.spray" % "spray-can" % "1.3.1",
   "io.spray" % "spray-routing" % "1.3.1",
-  "com.typesafe.akka" %%  "akka-actor"    % "2.3.0",
-  "com.typesafe.play" %% "play-json" % "2.2.2"
+  "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
+  "com.lihaoyi" %% "upickle" % "0.2.1"
 )
