@@ -1,21 +1,9 @@
 package com.lihaoyi.workbench
 
-import akka.actor.{ActorRef, Actor, ActorSystem}
-import scala.concurrent.duration._
-
-
 import sbt._
 import Keys._
-import akka.actor.ActorDSL._
-import com.typesafe.config.ConfigFactory
 import upickle._
-import spray.http.{AllOrigins, HttpResponse}
-import spray.routing.SimpleRoutingApp
-import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
-
 object Plugin extends sbt.Plugin {
-
-
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
@@ -83,14 +71,10 @@ object Plugin extends sbt.Plugin {
         }
       }
     },
-    server := {
-      new Server(localUrl.value._1, localUrl.value._2, bootSnippet.value)
-    },
-    onLoad := { state =>
+    server := new Server(localUrl.value._1, localUrl.value._2, bootSnippet.value),
+    (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
+      server.value.kill()
       state
-    },
-    onUnload := { state =>
-      state
-    }
+    }}
   )
 }

@@ -74,4 +74,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
   def msg[T: Writer](t: T) = {
     pubSub ! upickle.writeJs(t)
   }
+  def kill() = {
+    system.shutdown()
+  }
 }
