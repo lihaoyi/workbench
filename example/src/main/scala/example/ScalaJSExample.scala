@@ -21,7 +21,7 @@ object ScalaJSExample {
   val corners = Seq(Point(255, 255), Point(0, 255), Point(128, 0))
 
   def clear() = {
-    ctx.fillStyle = "white"
+    ctx.fillStyle = "black"
     ctx.fillRect(0, 0, 255, 255)
   }
 

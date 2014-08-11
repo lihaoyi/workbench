@@ -2,7 +2,7 @@ import sbt.Keys._
 
 name := "workbench"
 
-version := "0.1.3"
+version := "0.1.5"
 
 organization := "com.lihaoyi"
 
@@ -35,8 +35,6 @@ pomExtra := (
   )
 
 (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.js").get}
-
-resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
   "io.spray" % "spray-can" % "1.3.1",

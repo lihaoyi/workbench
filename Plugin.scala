@@ -37,7 +37,7 @@ object Plugin extends sbt.Plugin {
         s"http://${localUrl._1}:${localUrl._2}$path"
       }
     },
-    extraLoggers := {
+    (extraLoggers in ThisBuild) := {
       val clientLogger = FullLogger{
         new Logger {
           def log(level: Level.Value, message: => String) =
