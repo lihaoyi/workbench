@@ -1,8 +1,3 @@
-package com.lihaoyi.workbench
-
-import sbt._
-import Keys._
-import upickle._
 object Plugin extends sbt.Plugin {
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
