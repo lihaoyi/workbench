@@ -5,19 +5,28 @@ import com.typesafe.config.ConfigFactory
 import sbt.IO
 import spray.routing.SimpleRoutingApp
 import akka.actor.ActorDSL._
-import scala.Some
-import upickle.{Writer, Json, Js}
+
+import upickle.{Reader, Writer, Js}
 import spray.http.{AllOrigins, HttpResponse}
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import concurrent.duration._
+import scala.concurrent.Future
+
 class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
   implicit val system = ActorSystem(
     "SystemLol",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
     classLoader = ActorSystem.getClass.getClassLoader
   )
-
-  val pubSub = actor(new Actor{
+  object Wire extends autowire.Client[Js.Value, upickle.Reader, upickle.Writer]{
+    def doCall(req: Request): Future[Js.Value] = {
+      pubSub ! Js.Arr(Js.Str(req.path.mkString(".")), Js.Obj(req.args.toSeq:_*))
+      Future.successful(Js.Null)
+    }
+    def write[Result: Writer](r: Result) = upickle.writeJs(r)
+    def read[Result: Reader](p: Js.Value) = upickle.readJs[Result](p)
+  }
+  private val pubSub = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
     var queuedMessages = List[Js.Value]()
     case object Clear
@@ -37,15 +46,15 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
         waitingActor = Some(a)
       case (a: ActorRef, None, msgs) =>
 
-        respond(a, Json.write(Js.Array(msgs)))
+        respond(a, upickle.json.write(Js.Arr(msgs:_*)))
         queuedMessages = Nil
-      case (msg: Js.Array, None, msgs) =>
+      case (msg: Js.Arr, None, msgs) =>
         queuedMessages = msg :: msgs
-      case (msg: Js.Array, Some(a), Nil) =>
-        respond(a, Json.write(Js.Array(Seq(msg))))
+      case (msg: Js.Arr, Some(a), Nil) =>
+        respond(a, upickle.json.write(Js.Arr(msg)))
         waitingActor = None
       case (Clear, Some(a), Nil) =>
-        respond(a, Json.write(Js.Array(Nil)))
+        respond(a, upickle.json.write(Js.Arr()))
         waitingActor = None
     }
   })
@@ -56,10 +65,8 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
         complete {
           IO.readStream(
             getClass.getClassLoader
-              .getResourceAsStream("workbench_template.js")
-          ).replace("<host>", url)
-            .replace("<port>", port.toString)
-            .replace("<bootSnippet>", bootSnippet)
+              .getResourceAsStream("client-opt.js")
+          ) + s"\nMain.main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})"
         }
       } ~
         getFromDirectory(".")
@@ -69,10 +76,6 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
           pubSub ! ctx.responder
         }
       }
-  }
-
-  def msg[T: Writer](t: T) = {
-    pubSub ! upickle.writeJs(t)
   }
   def kill() = {
     system.shutdown()

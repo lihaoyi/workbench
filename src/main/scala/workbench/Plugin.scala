@@ -1,3 +1,9 @@
+package com.lihaoyi.workbench
+import sbt._
+import sbt.Keys._
+import autowire._
+import upickle.Js
+import scala.concurrent.ExecutionContext.Implicits.global
 object Plugin extends sbt.Plugin {
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
@@ -8,8 +14,6 @@ object Plugin extends sbt.Plugin {
 
   val bootSnippet = settingKey[String]("piece of javascript to make things happen")
   val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
-
-
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
@@ -36,9 +40,9 @@ object Plugin extends sbt.Plugin {
       val clientLogger = FullLogger{
         new Logger {
           def log(level: Level.Value, message: => String) =
-            if(level >= Level.Info) server.value msg Seq("print", level.toString, message)
-          def success(message: => String) = server.value msg Seq("print", "info", message)
-          def trace(t: => Throwable) = server.value msg Seq("print", "error", t.toString)
+            if(level >= Level.Info) server.value.Wire[Api].print(level.toString, message).call()
+          def success(message: => String) = server.value.Wire[Api].print("info", message).call()
+          def trace(t: => Throwable) = server.value.Wire[Api].print("error", t.toString).call()
         }
       }
       clientLogger.setSuccessEnabled(true)
@@ -47,22 +51,17 @@ object Plugin extends sbt.Plugin {
     },
     refreshBrowsers := {
       streams.value.log.info("workbench: Reloading Pages...")
-      server.value msg Seq("reload")
+      server.value.Wire[Api].reload().call()
     },
     updateBrowsers := {
       val changed = updatedJS.value
       // There is no point in clearing the browser if no js files have changed.
       if (changed.length > 0) {
-        server.value msg Seq("clear")
+        server.value.Wire[Api].clear().call()
 
-        changed.foreach {
-          path =>
-            streams.value.log.info("workbench: Refreshing " + path)
-            server.value msg Seq(
-              "run",
-              path,
-              bootSnippet.value
-            )
+        changed.foreach { path =>
+          streams.value.log.info("workbench: Refreshing " + path)
+          server.value.Wire[Api].run(path, Some(bootSnippet.value)).call()
         }
       }
     },

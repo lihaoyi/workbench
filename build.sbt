@@ -1,14 +1,17 @@
 import sbt.Keys._
+import scala.scalajs.sbtplugin.ScalaJSPlugin._
+import ScalaJSKeys._
 
 val defaultSettings = Seq(
   unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  "shared" / "main" / "scala"),
   unmanagedSourceDirectories in Test <+= baseDirectory(_ / "shared" / "test" / "scala")
 )
 
-lazy val plugin = project.in(file("plugin")).settings(defaultSettings:_*).settings(
+lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
-  version := "0.1.5",
+  version := "0.1.6-SNAPSHOT",
   organization := "com.lihaoyi",
+  scalaVersion := "2.10.4",
   sbtPlugin := true,
   publishArtifact in Test := false,
   publishTo := Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"),
@@ -32,12 +35,16 @@ lazy val plugin = project.in(file("plugin")).settings(defaultSettings:_*).settin
         </developer>
       </developers>
   ),
-  (resources in Compile) := {(resources in Compile).value ++ (baseDirectory.value * "*.js").get},
+  (resources in Compile) += {
+    (fullOptJS in (client, Compile)).value
+    (artifactPath in (client, Compile, fullOptJS)).value
+  },
   libraryDependencies ++= Seq(
     "io.spray" % "spray-can" % "1.3.1",
     "io.spray" % "spray-routing" % "1.3.1",
     "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
-    "com.lihaoyi" %% "upickle" % "0.2.1"
+    "com.lihaoyi" %% "autowire" % "0.2.3-SNAPSHOT",
+    "com.lihaoyi" %% "upickle" % "0.2.3-SNAPSHOT"
   )
 )
 
@@ -47,6 +54,7 @@ lazy val client = project.in(file("client"))
   libraryDependencies ++= Seq(
     "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
     "org.scala-lang.modules" %% "scala-async" % "0.9.2",
-    "com.lihaoyi" %%% "upickle" % "0.2.1"
+    "com.lihaoyi" %%% "autowire" % "0.2.3-SNAPSHOT",
+    "com.lihaoyi" %%% "upickle" % "0.2.3-SNAPSHOT"
   )
 )
