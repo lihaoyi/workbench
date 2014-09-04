@@ -43,8 +43,8 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
     "io.spray" % "spray-can" % "1.3.1",
     "io.spray" % "spray-routing" % "1.3.1",
     "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
-    "com.lihaoyi" %% "autowire" % "0.2.3-SNAPSHOT",
-    "com.lihaoyi" %% "upickle" % "0.2.3-SNAPSHOT"
+    "com.lihaoyi" %% "autowire" % "0.2.3",
+    "com.lihaoyi" %% "upickle" % "0.2.3"
   )
 )
 
@@ -54,7 +54,7 @@ lazy val client = project.in(file("client"))
   libraryDependencies ++= Seq(
     "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
     "org.scala-lang.modules" %% "scala-async" % "0.9.2",
-    "com.lihaoyi" %%% "autowire" % "0.2.3-SNAPSHOT",
-    "com.lihaoyi" %%% "upickle" % "0.2.3-SNAPSHOT"
+    "com.lihaoyi" %%% "autowire" % "0.2.3",
+    "com.lihaoyi" %%% "upickle" % "0.2.3"
   )
 )
