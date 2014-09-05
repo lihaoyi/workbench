@@ -20,7 +20,7 @@ resolvers += "spray repo" at "http://repo.spray.io"
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.1.5")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.0")
 ```
 - Add to your `build.sbt`
 ```scala
@@ -82,6 +82,19 @@ You can force the clean-up-and-reboot to happen from the browser via the shortcu
 -------
 
 With this done, you should be receiving the SBT logspam (compilation, warnings, errors) in your browse console, and the page should be automatically refreshing/updating when the application gets recompiled. If you have problems setting this up, try starting from the [example app](https://github.com/lihaoyi/workbench-example-app) and working from there.
+
+
+# Development
+
+To develop, go into `example/` and run `sbt ~fastOptJS`. Then you can go to
+
+```
+http://localhost:12345/target/scala-2.11/classes/index-dev.html
+```
+
+and see a small sierpinski-triangle application. Editing the code within `example/` should cause the SBT log-spam to appear in the browser console, and changes (e.g. changing the color of the background fill) should cause a recompile and updating of the browser animation.
+
+To make changes to workbench, modify the workbench source code and stop/re-run `sbt ~fastOptJS`. When workbench finishes re-compiling, SBT re-starts and the page becomes accessible, your changes to workbench will take effect. You can replace `fullOptJs` in the `built.sbt` file with `fastOptJS`, and swapping the reference to `client-opt.js` to `client-fastopt.js`, if you want to speed up the development cycle.
 
 Pull requests welcome!
 

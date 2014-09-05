@@ -18,17 +18,28 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
     classLoader = ActorSystem.getClass.getClassLoader
   )
-  object Wire extends autowire.Client[Js.Value, upickle.Reader, upickle.Writer]{
+
+  /**
+   * The connection from workbench server to the client
+   */
+  object Wire extends autowire.Client[Js.Value, upickle.Reader, upickle.Writer] with ReadWrite{
     def doCall(req: Request): Future[Js.Value] = {
-      pubSub ! Js.Arr(upickle.writeJs(req.path), Js.Obj(req.args.toSeq:_*))
+      longPoll ! Js.Arr(upickle.writeJs(req.path), Js.Obj(req.args.toSeq:_*))
       Future.successful(Js.Null)
     }
-    def write[Result: Writer](r: Result) = upickle.writeJs(r)
-    def read[Result: Reader](p: Js.Value) = upickle.readJs[Result](p)
   }
-  private val pubSub = actor(new Actor{
+
+  /**
+   * Actor meant to handle long polling, buffering messages or waiting actors
+   */
+  private val longPoll = actor(new Actor{
     var waitingActor: Option[ActorRef] = None
     var queuedMessages = List[Js.Value]()
+
+    /**
+     * Flushes returns nothing to any waiting actor every so often,
+     * to prevent the connection from living too long.
+     */
     case object Clear
     import system.dispatcher
 
@@ -53,12 +64,19 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
       case (msg: Js.Arr, Some(a), Nil) =>
         respond(a, upickle.json.write(Js.Arr(msg)))
         waitingActor = None
-      case (Clear, Some(a), Nil) =>
-        respond(a, upickle.json.write(Js.Arr()))
+      case (Clear, waiting, Nil) =>
+        waiting.foreach(respond(_, upickle.json.write(Js.Arr())))
         waitingActor = None
     }
   })
 
+  /**
+   * Simple spray server:
+   *
+   * - /workbench.js is hardcoded to be the workbench javascript client
+   * - Any other GET request just pulls from the local filesystem
+   * - POSTs to /notifications get routed to the longPoll actor
+   */
   startServer(url, port) {
     get {
       path("workbench.js") {
@@ -79,11 +97,9 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     } ~
     post {
       path("notifications") { ctx =>
-        pubSub ! ctx.responder
+        longPoll ! ctx.responder
       }
     }
   }
-  def kill() = {
-    system.shutdown()
-  }
+  def kill() = system.shutdown()
 }
