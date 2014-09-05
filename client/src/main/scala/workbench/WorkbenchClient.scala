@@ -66,7 +66,7 @@ object WorkbenchClient extends Api{
     bootSnippet.foreach{ bootSnippet =>
       tag.onreadystatechange = (e: dom.Event) => {
         if (!loaded) {
-          dom.console.log("Post-run reboot")
+          dom.console.log("Workbench reboot")
           js.eval(bootSnippet)
         }
         loaded = true
