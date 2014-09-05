@@ -3,7 +3,6 @@ import upickle._
 import org.scalajs.dom
 import org.scalajs.dom.extensions._
 import upickle.{Reader, Writer, Js}
-
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExport
 import scalajs.concurrent.JSExecutionContext.Implicits.runNow
@@ -12,32 +11,47 @@ object WireServer extends autowire.Server[Js.Value, upickle.Reader, upickle.Writ
   def write[Result: Writer](r: Result) = upickle.writeJs(r)
   def read[Result: Reader](p: Js.Value) = upickle.readJs[Result](p)
   def wire(parsed: Js.Arr): Unit = {
-    WireServer.route[Api](Main).apply(
-      autowire.Core.Request(
-        parsed(0).asInstanceOf[Js.Arr].value.collect{case Js.Str(s) => s},
-        parsed(1).value.asInstanceOf[Map[String, Js.Value]]
-      )
+    val Js.Arr(path, args: Js.Obj) = parsed
+
+    val req = new Request(
+      upickle.readJs[Seq[String]](path),
+      args.value.toMap
     )
+    WireServer.route[Api](WorkbenchClient).apply(req)
   }
 }
 @JSExport
-object Main extends Api{
+object WorkbenchClient extends Api{
+  val shadowBody = dom.document.body.cloneNode(deep = true)
+  var interval = 1000
+  var success = false
+  @JSExport
   def main(bootSnippet: String, host: String, port: Int): Unit = {
-    def rec(): Unit = {
-      val f = Ajax.get(s"http://$host:$port/notifications")
-
-      f.onSuccess { case data =>
-        val parsed = json.read(data.responseText).asInstanceOf[Js.Arr]
-        WireServer.wire(parsed)
-        rec()
-      } (runNow)
-      ()
+    Ajax.post(s"http://$host:$port/notifications").onComplete{
+      case util.Success(data) =>
+        if (!success) println("Workbench connected")
+        success = true
+        interval = 1000
+        json.read(data.responseText)
+            .asInstanceOf[Js.Arr]
+            .value
+            .foreach(v => WireServer.wire(v.asInstanceOf[Js.Arr]))
+        main(bootSnippet, host, port)
+      case util.Failure(e) =>
+        if (!success) println("Workbench disconnected " + e)
+        success = false
+        interval = math.min(interval * 2, 30000)
+        dom.setTimeout(() => main(bootSnippet, host, port), interval)
     }
-    rec()
   }
 
-
-  override def clear(): Unit = ???
+  override def clear(): Unit = {
+    dom.document.asInstanceOf[js.Dynamic].body = shadowBody.cloneNode(true)
+    for(i <- 0 until 100000){
+      dom.clearTimeout(i)
+      dom.clearInterval(i)
+    }
+  }
 
   override def reload(): Unit = {
     dom.console.log("Reloading page...")
@@ -49,16 +63,15 @@ object Main extends Api{
     var loaded = false
 
     tag.setAttribute("src", path)
-
     bootSnippet.foreach{ bootSnippet =>
       tag.onreadystatechange = (e: dom.Event) => {
-        dom.console.log("Post-run reboot")
         if (!loaded) {
-          dom.console.log("Post-run reboot go!")
+          dom.console.log("Post-run reboot")
           js.eval(bootSnippet)
         }
         loaded = true
       }
+      tag.asInstanceOf[js.Dynamic].onload = tag.onreadystatechange
     }
     dom.document.head.appendChild(tag)
   }

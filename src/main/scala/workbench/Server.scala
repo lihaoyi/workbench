@@ -14,13 +14,13 @@ import scala.concurrent.Future
 
 class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
   implicit val system = ActorSystem(
-    "SystemLol",
+    "Workbench-System",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
     classLoader = ActorSystem.getClass.getClassLoader
   )
   object Wire extends autowire.Client[Js.Value, upickle.Reader, upickle.Writer]{
     def doCall(req: Request): Future[Js.Value] = {
-      pubSub ! Js.Arr(Js.Str(req.path.mkString(".")), Js.Obj(req.args.toSeq:_*))
+      pubSub ! Js.Arr(upickle.writeJs(req.path), Js.Obj(req.args.toSeq:_*))
       Future.successful(Js.Null)
     }
     def write[Result: Writer](r: Result) = upickle.writeJs(r)
@@ -63,19 +63,25 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     get {
       path("workbench.js") {
         complete {
-          IO.readStream(
-            getClass.getClassLoader
-              .getResourceAsStream("client-opt.js")
-          ) + s"\nMain.main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})"
+          val body = IO.readStream(
+            getClass.getClassLoader.getResourceAsStream("client-opt.js")
+          )
+          s"""
+          (function(){
+            $body
+
+            WorkbenchClient().main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})
+          }).call(this)
+          """
         }
       } ~
-        getFromDirectory(".")
+      getFromDirectory(".")
     } ~
-      post {
-        path("notifications") { ctx =>
-          pubSub ! ctx.responder
-        }
+    post {
+      path("notifications") { ctx =>
+        pubSub ! ctx.responder
       }
+    }
   }
   def kill() = {
     system.shutdown()

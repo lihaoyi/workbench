@@ -9,7 +9,7 @@ val defaultSettings = Seq(
 
 lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
-  version := "0.1.6-SNAPSHOT",
+  version := "0.1.6",
   organization := "com.lihaoyi",
   scalaVersion := "2.10.4",
   sbtPlugin := true,
@@ -53,7 +53,6 @@ lazy val client = project.in(file("client"))
                          .settings(
   libraryDependencies ++= Seq(
     "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
-    "org.scala-lang.modules" %% "scala-async" % "0.9.2",
     "com.lihaoyi" %%% "autowire" % "0.2.3",
     "com.lihaoyi" %%% "upickle" % "0.2.3"
   )

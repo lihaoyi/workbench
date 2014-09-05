@@ -7,7 +7,8 @@ case class Point(x: Int, y: Int){
   def +(p: Point) = Point(x + p.x, y + p.y)
   def /(d: Int) = Point(x / d, y / d)
 }
-
+// Seems like you need this for sbt ~fastOptJS to work
+// mkdir ~/.sbt/0.13/plugins/target/scala-2.10/sbt-0.13/classes
 @JSExport
 object ScalaJSExample {
   val ctx = dom.document
