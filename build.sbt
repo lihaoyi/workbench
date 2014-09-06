@@ -45,7 +45,8 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
     "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
     "com.lihaoyi" %% "autowire" % "0.2.3",
     "com.lihaoyi" %% "upickle" % "0.2.3"
-  )
+  ),
+  resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 )
 
 lazy val client = project.in(file("client"))
