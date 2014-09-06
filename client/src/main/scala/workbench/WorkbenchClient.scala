@@ -38,7 +38,7 @@ object WorkbenchClient extends Api{
             .foreach(v => Wire.wire(v.asInstanceOf[Js.Arr]))
         main(bootSnippet, host, port)
       case util.Failure(e) =>
-        if (!success) println("Workbench disconnected " + e)
+        if (success) println("Workbench disconnected " + e)
         success = false
         interval = math.min(interval * 2, 30000)
         dom.setTimeout(() => main(bootSnippet, host, port), interval)
