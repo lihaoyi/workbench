@@ -20,7 +20,11 @@ object Wire extends autowire.Server[Js.Value, upickle.Reader, upickle.Writer] wi
 @JSExport
 object WorkbenchClient extends Api{
   @JSExport
-  val shadowBody = dom.document.body.cloneNode(deep = true)
+  lazy val shadowBody = dom.document.body.cloneNode(deep = true)
+
+  // Trigger shadowBody to get captured when the page first loads
+  dom.addEventListener("load", (event: dom.Event) => shadowBody)
+
   @JSExport
   var interval = 1000
   @JSExport
