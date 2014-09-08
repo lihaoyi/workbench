@@ -20,7 +20,7 @@ resolvers += "spray repo" at "http://repo.spray.io"
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.0")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.1")
 ```
 - Add to your `build.sbt`
 ```scala

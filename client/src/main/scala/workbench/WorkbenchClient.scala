@@ -22,31 +22,37 @@ object WorkbenchClient extends Api{
   @JSExport
   lazy val shadowBody = dom.document.body.cloneNode(deep = true)
 
-  // Trigger shadowBody to get captured when the page first loads
-  dom.addEventListener("load", (event: dom.Event) => shadowBody)
-
   @JSExport
   var interval = 1000
   @JSExport
   var success = false
   @JSExport
   def main(bootSnippet: String, host: String, port: Int): Unit = {
-    Ajax.post(s"http://$host:$port/notifications").onComplete{
-      case util.Success(data) =>
-        if (!success) println("Workbench connected")
-        success = true
-        interval = 1000
-        json.read(data.responseText)
+    def rec(): Unit = {
+      Ajax.post(s"http://$host:$port/notifications").onComplete {
+        case util.Success(data) =>
+          if (!success) println("Workbench connected")
+          success = true
+          interval = 1000
+          json.read(data.responseText)
             .asInstanceOf[Js.Arr]
             .value
             .foreach(v => Wire.wire(v.asInstanceOf[Js.Arr]))
-        main(bootSnippet, host, port)
-      case util.Failure(e) =>
-        if (success) println("Workbench disconnected " + e)
-        success = false
-        interval = math.min(interval * 2, 30000)
-        dom.setTimeout(() => main(bootSnippet, host, port), interval)
+          rec()
+        case util.Failure(e) =>
+          if (success) println("Workbench disconnected " + e)
+          success = false
+          interval = math.min(interval * 2, 30000)
+          dom.setTimeout(() => rec(), interval)
+      }
     }
+
+    // Trigger shadowBody to get captured when the page first loads
+    dom.window.addEventListener("load", (event: dom.Event) => {
+      dom.console.log("Loading Workbench")
+      shadowBody
+      rec()
+    })
   }
   @JSExport
   override def clear(): Unit = {
