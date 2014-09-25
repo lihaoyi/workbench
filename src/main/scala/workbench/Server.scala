@@ -3,11 +3,12 @@ package com.lihaoyi.workbench
 import akka.actor.{ActorRef, Actor, ActorSystem}
 import com.typesafe.config.ConfigFactory
 import sbt.IO
+import spray.httpx.encoding.Gzip
 import spray.routing.SimpleRoutingApp
 import akka.actor.ActorDSL._
 
 import upickle.{Reader, Writer, Js}
-import spray.http.{AllOrigins, HttpResponse}
+import spray.http.{HttpEntity, AllOrigins, HttpResponse}
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import concurrent.duration._
 import scala.concurrent.Future
@@ -94,6 +95,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
         }
       } ~
       getFromDirectory(".")
+
     } ~
     post {
       path("notifications") { ctx =>

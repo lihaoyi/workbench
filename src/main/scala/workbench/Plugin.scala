@@ -7,7 +7,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object Plugin extends sbt.Plugin {
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
-  val updateBrowsers = taskKey[Unit]("partially resets some of the stuff in the browser")
+  val updateBrowsers = taskKey[Unit]("Partially resets some of the stuff in the browser")
+  val spliceBrowsers = taskKey[Unit]("Attempts to do a live update of the code running in the browser while maintaining state")
   val localUrl = settingKey[(String, Int)]("localUrl")
   private[this] val server = settingKey[Server]("local websocket server")
 
@@ -62,6 +63,29 @@ object Plugin extends sbt.Plugin {
         changed.foreach { path =>
           streams.value.log.info("workbench: Refreshing " + path)
           server.value.Wire[Api].run(path, Some(bootSnippet.value)).call()
+        }
+      }
+    },
+    spliceBrowsers := {
+      val changed = updatedJS.value
+      // There is no point in clearing the browser if no js files have changed.
+      if (changed.length > 0) {
+        for{
+          path <- changed
+          if !path.endsWith(".js.js")
+        }{
+
+          streams.value.log.info("workbench: Splicing " + path)
+          val prefix = "http://localhost:12345/"
+          var s = IO.read(new sbt.File(path.drop(prefix.length)))
+
+          s = s.replace("\nvar ScalaJS = ", "\nvar ScalaJS = ScalaJS || ")
+          s = s.replaceAll("\n(ScalaJS\\.c\\.[a-zA-Z_$0-9]+\\.prototype) = ", "/*X*/\n$1 = $1 || ")
+          for(char <- Seq("d", "c", "h", "i", "n", "m")){
+            s = s.replaceAll("\n(ScalaJS\\." + char + "\\.[a-zA-Z_$0-9]+) = ", "\n$1 = $1 || ")
+          }
+          IO.write(new sbt.File(path.drop(prefix.length) + ".js"), s.getBytes)
+          server.value.Wire[Api].run(path + ".js", None).call()
         }
       }
     },

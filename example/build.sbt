@@ -21,5 +21,7 @@ libraryDependencies ++= Seq(
 
 bootSnippet := "ScalaJSExample().main();"
 
-updateBrowsers <<= updateBrowsers.triggeredBy(ScalaJSKeys.fastOptJS in Compile)
+ScalaJSKeys.inliningMode := scala.scalajs.sbtplugin.InliningMode.Off
+
+spliceBrowsers <<= spliceBrowsers.triggeredBy(ScalaJSKeys.fastOptJS in Compile)
 
