@@ -80,7 +80,16 @@ object Plugin extends sbt.Plugin {
           var s = IO.read(new sbt.File(path.drop(prefix.length)))
 
           s = s.replace("\nvar ScalaJS = ", "\nvar ScalaJS = ScalaJS || ")
-          s = s.replaceAll("\n(ScalaJS\\.c\\.[a-zA-Z_$0-9]+\\.prototype) = ", "/*X*/\n$1 = $1 || ")
+          s = s.replaceAll(
+            "\n(ScalaJS\\.c\\.[a-zA-Z_$0-9]+\\.prototype) = (.*?\n)",
+            """
+              |$1 = $1 || {}
+              |(function(){
+              |  var newProto = $2
+              |  for (var attrname in newProto) { $1[attrname] = newProto[attrname]; }
+              |})()
+              |""".stripMargin
+          )
           for(char <- Seq("d", "c", "h", "i", "n", "m")){
             s = s.replaceAll("\n(ScalaJS\\." + char + "\\.[a-zA-Z_$0-9]+) = ", "\n$1 = $1 || ")
           }

@@ -20,7 +20,7 @@ resolvers += "spray repo" at "http://repo.spray.io"
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.1")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.2")
 ```
 - Add to your `build.sbt`
 ```scala
@@ -62,7 +62,7 @@ This will to make any client browsers refresh every time `packageJS` completes, 
 updateBrowsers <<= updateBrowsers.triggeredBy(packageJS in Compile)
 ```
 
-This will attempt to perform an update without refreshing the page every time `packageJS` completes, which is much faster than a full page refresh since the browser doesn't need to parse/exec the huge blob of `extdeps.js`. This involves:
+This will attempt to perform an update without refreshing the page every time `fastOptJS` completes. This involves:
 
 - Returning the state of `document.body` to the initial state before any javascript was run
 - Stripping all event listeners from things within body
@@ -78,6 +78,41 @@ This will attempt to perform an update without refreshing the page every time `p
 Nonetheless, for the bulk of javascript libraries these limitations are acceptable. As long as you're not doing anything too crazy, `updateBrowsers` but should suffice for most applications.
 
 You can force the clean-up-and-reboot to happen from the browser via the shortcut Ctrl-Alt-Shift-Enter if you simply wish to reset the browser to a clean state.
+
+#### spliceBrowsers
+
+```scala
+ScalaJSKeys.inliningMode := scala.scalajs.sbtplugin.InliningMode.Off
+
+spliceBrowsers <<= spliceBrowsers.triggeredBy(ScalaJSKeys.fastOptJS in Compile)
+```
+
+This is an experimental feature that aims to perform an update to the code running in the browser *without losing the state of the running code*! Thus you can make changes to the code and have them immediately appear in the program, without having to restart and lose the current state of the application. See [this video](https://vimeo.com/105852957) for a demo of it in action.  
+
+This live splicing is not doable in the general case, but only for some subset of changes:
+
+- Changes inside method bodies
+- Adding new `def`s and `lazy val`s to classes/objects
+- Creating entirely new classes/objects
+
+This means that there are many changes that `spliceBrowsers` does not support, such as.
+
+- Adding new `val`s and `var`s to classes/objects
+- Modifying inheritance hierarchies
+- Changing the type of an existing `val`/`var`/`lazy val`
+- Renaming classes
+
+And many more. If the change is something that Workbench does not support, you'll see errors in the browser console:
+
+![Example](https://github.com/lihaoyi/scala-js-workbench/blob/master/Error.png?raw=true)
+
+And you'll need to refresh the page.
+
+Note that you have to turn off the Scala.js inliner (as shown in the above SBT snippet) in order to have this work. The inliner performs inlinings across class and method boundaries that makes it hard to predict whether or not the live-splicer will work.
+
+Lastly, note that `spliceBrowsers` does not retroactively modify the state of the application as if the changes in the code had always been present. For example, values set by the constructor in instances of a class will remain as-is even if you modify the class constructor; only new instances will be affected by the modified constructor. 
+
+In general, it is entirely possible to get into weird/invalid states due to this live-splicing, and the general solution is simply to refresh the page.
 
 -------
 
@@ -97,6 +132,27 @@ and see a small sierpinski-triangle application. Editing the code within `exampl
 To make changes to workbench, modify the workbench source code and stop/re-run `sbt ~fastOptJS`. When workbench finishes re-compiling, SBT re-starts and the page becomes accessible, your changes to workbench will take effect. You can replace `fullOptJs` in the `built.sbt` file with `fastOptJS`, and swapping the reference to `client-opt.js` to `client-fastopt.js`, if you want to speed up the development cycle.
 
 Pull requests welcome!
+
+Change Log
+----------
+
+##0.2.2
+
+- First implementation of `spliceBrowsers`
+
+##0.2.1
+
+- Added missing resolver `http://dl.bintray.com/non/maven`
+
+##0.2.0
+
+- First implementation of workbench client in Scala.js
+
+##0.1.5
+
+- Properly kill the spray server on plugin unload, `sbt reload` now works 
+- Swap out `play-json` with `upickle`
+- (Internally) separate Spray server code with SBT madness
 
 License
 -------

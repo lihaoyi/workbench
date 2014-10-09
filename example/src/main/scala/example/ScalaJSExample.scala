@@ -12,16 +12,17 @@ case class Point(x: Int, y: Int){
 // mkdir ~/.sbt/0.13/plugins/target/scala-2.10/sbt-0.13/classes
 @JSExport
 object ScalaJSExample {
-  val ctx = dom.document
-    .getElementById("canvas")
-    .asInstanceOf[dom.HTMLCanvasElement]
-    .getContext("2d")
-    .asInstanceOf[dom.CanvasRenderingContext2D]
+  val ctx =
+    dom.document
+       .getElementById("canvas")
+       .asInstanceOf[dom.HTMLCanvasElement]
+       .getContext("2d")
+       .asInstanceOf[dom.CanvasRenderingContext2D]
 
   var p = Point(128, 128)
-  def color = "black"
+  def color = "grey"
 
-  var enemies = List.fill(10)(Point(util.Random.nextInt(255), util.Random.nextInt(255)))
+  var enemiess = List.fill(10)(Point(util.Random.nextInt(255), util.Random.nextInt(255)))
   def clear() = {
     ctx.fillStyle = color
     ctx.fillRect(0, 0, 255, 255)
@@ -29,10 +30,10 @@ object ScalaJSExample {
 
   def run = {
     clear()
-    ctx.fillStyle = "cyan"
+    ctx.fillStyle = "yellow"
     p = Point(p.x, (p.y + 2) % 255)
     ctx.fillRect(p.x, p.y, 5, 20)
-    enemies = for (enemy <- enemies) yield {
+    enemiess = for (enemy <- enemiess) yield {
       ctx.fillStyle = "red"
       ctx.fillRect(enemy.x, enemy.y, 10, 10)
       Point((enemy.x + 1) % 255, (enemy.y + 1) % 255)
@@ -40,8 +41,6 @@ object ScalaJSExample {
   }
   @JSExport
   def main(): Unit = {
-    dom.console.log("main")
-
     dom.setInterval(() => run, 10)
   }
 }

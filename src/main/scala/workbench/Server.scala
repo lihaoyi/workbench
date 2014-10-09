@@ -56,15 +56,18 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
         // Even if there's someone already waiting,
         // a new actor waiting replaces the old one
         waitingActor = Some(a)
-      case (a: ActorRef, None, msgs) =>
 
+      case (a: ActorRef, None, msgs) =>
         respond(a, upickle.json.write(Js.Arr(msgs:_*)))
         queuedMessages = Nil
+
       case (msg: Js.Arr, None, msgs) =>
         queuedMessages = msg :: msgs
+
       case (msg: Js.Arr, Some(a), Nil) =>
         respond(a, upickle.json.write(Js.Arr(msg)))
         waitingActor = None
+
       case (Clear, waiting, Nil) =>
         waiting.foreach(respond(_, upickle.json.write(Js.Arr())))
         waitingActor = None
