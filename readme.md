@@ -28,7 +28,7 @@ workbenchSettings
 ```
 If you're using `project/Build.scala` or similar, also  add:
 ```scala
-import scala.js.workbench.Plugin._
+import com.lihaoyi.workbench.Plugin._
 ```
 - So that workbench knows how to restart your application, specify a `bootSnippet` property in your SBT build, which is a javascript command to start your application, e.g.
 ```scala
