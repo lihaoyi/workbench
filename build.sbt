@@ -9,7 +9,7 @@ val defaultSettings = Seq(
 
 lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
-  version := "0.2.2",
+  version := "0.2.3",
   organization := "com.lihaoyi",
   scalaVersion := "2.10.4",
   sbtPlugin := true,
@@ -44,7 +44,7 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
     "io.spray" % "spray-routing" % "1.3.1",
     "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
     "com.lihaoyi" %% "autowire" % "0.2.3",
-    "com.lihaoyi" %% "upickle" % "0.2.3"
+    "com.lihaoyi" %% "upickle" % "0.2.5"
   ),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 )
@@ -55,6 +55,6 @@ lazy val client = project.in(file("client"))
   libraryDependencies ++= Seq(
     "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
     "com.lihaoyi" %%% "autowire" % "0.2.3",
-    "com.lihaoyi" %%% "upickle" % "0.2.3"
+    "com.lihaoyi" %%% "upickle" % "0.2.5"
   )
 )

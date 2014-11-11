@@ -1,5 +1,5 @@
-scala-js-workbench
------------------
+workbench 0.2.3
+---------------
 
 ![Example](https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true)
 
@@ -20,7 +20,7 @@ resolvers += "spray repo" at "http://repo.spray.io"
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.2")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.2.3")
 ```
 - Add to your `build.sbt`
 ```scala
@@ -135,6 +135,10 @@ Pull requests welcome!
 
 Change Log
 ----------
+
+##0.2.3
+
+- Upgraded uPickle, removed need for special resolver
 
 ##0.2.2
 
