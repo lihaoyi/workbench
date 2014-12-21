@@ -39,10 +39,18 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
     (fullOptJS in (client, Compile)).value
     (artifactPath in (client, Compile, fullOptJS)).value
   },
+  resolvers += Resolver.url("scala-js-releases",
+    url("http://dl.bintray.com/content/scala-js/scala-js-releases"))(
+      Resolver.ivyStylePatterns),
+  addSbtPlugin("org.scala-lang.modules.scalajs" % "scalajs-sbt-plugin" % "0.5.4"),
   libraryDependencies ++= Seq(
+    "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+    "org.scala-lang.modules.scalajs" % s"scalajs-compiler_${scalaVersion.value}" % "0.5.4",
+    "org.scala-lang.modules.scalajs" %% "scalajs-tools" % "0.5.4",
     "io.spray" % "spray-can" % "1.3.1",
     "io.spray" % "spray-routing" % "1.3.1",
-    "com.typesafe.akka" %%  "akka-actor" % "2.3.0",
+    "com.typesafe.akka" %% "akka-actor" % "2.3.0",
+    "org.scala-lang.modules" %% "scala-async" % "0.9.1" % "provided",
     "com.lihaoyi" %% "autowire" % "0.2.3",
     "com.lihaoyi" %% "upickle" % "0.2.5"
   ),
@@ -56,5 +64,6 @@ lazy val client = project.in(file("client"))
     "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
     "com.lihaoyi" %%% "autowire" % "0.2.3",
     "com.lihaoyi" %%% "upickle" % "0.2.5"
-  )
+  ),
+  emitSourceMaps := false
 )

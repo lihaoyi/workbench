@@ -1,8 +1,9 @@
 package com.lihaoyi.workbench
 
 import akka.actor.{ActorRef, Actor, ActorSystem}
+import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
-import sbt.IO
+import sbt.{Logger, IO}
 import spray.httpx.encoding.Gzip
 import spray.routing.SimpleRoutingApp
 import akka.actor.ActorDSL._
@@ -12,6 +13,20 @@ import spray.http.{HttpEntity, AllOrigins, HttpResponse}
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import concurrent.duration._
 import scala.concurrent.Future
+import scala.io.Source
+import scala.scalajs.tools.optimizer.{ScalaJSClosureOptimizer, ScalaJSOptimizer}
+import scala.scalajs.tools.io._
+import scala.scalajs.tools.logging.Level
+import scala.tools.nsc
+import scala.tools.nsc.Settings
+
+import scala.tools.nsc.backend.JavaPlatform
+import scala.tools.nsc.plugins.Plugin
+import scala.tools.nsc.util.ClassPath.JavaContext
+import scala.collection.mutable
+import scala.tools.nsc.typechecker.Analyzer
+import scala.scalajs.tools.classpath.{CompleteNCClasspath, CompleteCIClasspath, PartialIRClasspath, PartialClasspath}
+import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
 
 class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
   implicit val system = ActorSystem(
@@ -107,4 +122,5 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     }
   }
   def kill() = system.shutdown()
+
 }

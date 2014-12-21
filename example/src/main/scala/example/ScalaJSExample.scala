@@ -20,7 +20,7 @@ object ScalaJSExample {
        .asInstanceOf[dom.CanvasRenderingContext2D]
 
   var p = Point(128, 128)
-  def color = "black"
+  var color = "black"
 
   var enemiess = List.fill(10)(Point(util.Random.nextInt(255), util.Random.nextInt(255)))
   def clear() = {
