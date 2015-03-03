@@ -3,13 +3,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import sbt._
 import sbt.Keys._
 import autowire._
-import scala.scalajs.sbtplugin.ScalaJSPlugin.ScalaJSKeys
-import scala.scalajs.tools.io._
-import scala.scalajs.tools.optimizer.ScalaJSOptimizer
-import scala.scalajs.sbtplugin.ScalaJSPluginInternal._
-import scala.scalajs.sbtplugin.Implicits._
+import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport
+import org.scalajs.core.tools.io._
+import org.scalajs.core.tools.optimizer.ScalaJSOptimizer
+import org.scalajs.sbtplugin.ScalaJSPluginInternal._
+import org.scalajs.sbtplugin.Implicits._
 
-import ScalaJSKeys._
+import AutoImport._
 object Plugin extends sbt.Plugin {
 
   val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
@@ -137,15 +137,16 @@ object Plugin extends sbt.Plugin {
         import ScalaJSOptimizer._
 
         (scalaJSOptimizer in fastOptJS).value.optimizeCP(
-          Inputs(input = (preLinkClasspath in fastOptJS).value),
-          OutputConfig(
+          (scalaJSPreLinkClasspath in fastOptJS).value,
+          Config(
             output = WritableFileVirtualJSFile(output),
             cache = None,
             wantSourceMap = (emitSourceMaps in fastOptJS).value,
             relativizeSourceMapBase = relSourceMapBase,
-            checkIR = (checkScalaJSIR in fastOptJS).value,
-            disableInliner = (inliningMode in fastOptJS).value.disabled,
-            batchInline = (inliningMode in fastOptJS).value.batch),
+            checkIR = (scalaJSOptimizerOptions in fastOptJS).value.checkScalaJSIR,
+            disableOptimizer = (scalaJSOptimizerOptions in fastOptJS).value.disableOptimizer,
+            batchMode = (scalaJSOptimizerOptions in fastOptJS).value.batchMode
+            ),
           s.log
         )
         // end of C&P
@@ -165,7 +166,7 @@ object Plugin extends sbt.Plugin {
           ).call()
           ()
         }
-      }.dependsOn(packageJSDependencies, packageLauncher, compile)
+      }.dependsOn(packageJSDependencies, packageScalaJSLauncher, compile)
     },
     sjsReset := {
       println("Clearing sjs REPL History")

@@ -14,18 +14,17 @@ import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import concurrent.duration._
 import scala.concurrent.Future
 import scala.io.Source
-import scala.scalajs.tools.optimizer.{ScalaJSClosureOptimizer, ScalaJSOptimizer}
-import scala.scalajs.tools.io._
-import scala.scalajs.tools.logging.Level
+import org.scalajs.core.tools.optimizer.{ScalaJSClosureOptimizer, ScalaJSOptimizer}
+import org.scalajs.core.tools.io._
+import org.scalajs.core.tools.logging.Level
 import scala.tools.nsc
 import scala.tools.nsc.Settings
 
 import scala.tools.nsc.backend.JavaPlatform
-import scala.tools.nsc.plugins.Plugin
 import scala.tools.nsc.util.ClassPath.JavaContext
 import scala.collection.mutable
 import scala.tools.nsc.typechecker.Analyzer
-import scala.scalajs.tools.classpath.{CompleteNCClasspath, CompleteCIClasspath, PartialIRClasspath, PartialClasspath}
+import org.scalajs.core.tools.classpath.{CompleteClasspath, PartialClasspath}
 import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
 
 class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
@@ -107,7 +106,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
           (function(){
             $body
 
-            WorkbenchClient().main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})
+            com.lihaoyi.workbench.WorkbenchClient().main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})
           }).call(this)
           """
         }

@@ -1,9 +1,7 @@
-// Turn this project into a Scala.js project by importing these settings
-import scala.scalajs.sbtplugin.ScalaJSPlugin._
-import ScalaJSKeys._
 import com.lihaoyi.workbench.Plugin._
 
-scalaJSSettings
+// Turn this project into a Scala.js project by importing these settings
+enablePlugins(ScalaJSPlugin)
 
 workbenchSettings
 
@@ -16,12 +14,12 @@ version := "0.1-SNAPSHOT"
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6"
+  "org.scala-js" %%% "scalajs-dom" % "0.8.0"
 )
 
 bootSnippet := "ScalaJSExample().main();"
 
-ScalaJSKeys.inliningMode := scala.scalajs.sbtplugin.InliningMode.Off
+disableOptimizer := true
 
-spliceBrowsers <<= spliceBrowsers.triggeredBy(ScalaJSKeys.fastOptJS in Compile)
+spliceBrowsers <<= spliceBrowsers.triggeredBy(fastOptJS in Compile)
 

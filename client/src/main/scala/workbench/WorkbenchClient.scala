@@ -1,11 +1,12 @@
 package com.lihaoyi.workbench
 import upickle._
 import org.scalajs.dom
-import org.scalajs.dom.extensions._
+import org.scalajs.dom.ext._
 import upickle.{Reader, Writer, Js}
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExport
 import scalajs.concurrent.JSExecutionContext.Implicits.runNow
+import org.scalajs.dom.raw._
 
 /**
  * The connection from workbench server to the client
@@ -69,7 +70,7 @@ object WorkbenchClient extends Api{
   }
   @JSExport
   override def run(path: String, bootSnippet: Option[String]): Unit = {
-    val tag = dom.document.createElement("script")
+    val tag = dom.document.createElement("script").asInstanceOf[HTMLElement]
     var loaded = false
 
     tag.setAttribute("src", path)
