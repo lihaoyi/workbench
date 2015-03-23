@@ -1,6 +1,6 @@
 import sbt.Keys._
 
-val scalaJsVersion = "0.6.1"
+val scalaJsVersion = "0.6.2"
 
 val defaultSettings = Seq(
   unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  "shared" / "main" / "scala"),
