@@ -11,7 +11,7 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
   version := "0.2.3",
   organization := "com.lihaoyi",
-  scalaVersion := "2.10.4",
+  scalaVersion := "2.10.5",
   sbtPlugin := true,
   publishArtifact in Test := false,
   publishTo := Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"),
@@ -49,8 +49,8 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
     "io.spray" % "spray-routing" % "1.3.1",
     "com.typesafe.akka" %% "akka-actor" % "2.3.9",
     "org.scala-lang.modules" %% "scala-async" % "0.9.3" % "provided",
-    "com.lihaoyi" %% "autowire" % "0.2.4",
-    "com.lihaoyi" %% "upickle" % "0.2.6"
+    "com.lihaoyi" %% "autowire" % "0.2.5",
+    "com.lihaoyi" %% "upickle" % "0.2.8"
   ),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 )
