@@ -1,6 +1,6 @@
 import sbt.Keys._
-import scala.scalajs.sbtplugin.ScalaJSPlugin._
-import ScalaJSKeys._
+
+val scalaJsVersion = "0.6.2"
 
 val defaultSettings = Seq(
   unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  "shared" / "main" / "scala"),
@@ -11,7 +11,7 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
   version := "0.2.3",
   organization := "com.lihaoyi",
-  scalaVersion := "2.10.4",
+  scalaVersion := "2.10.5",
   sbtPlugin := true,
   publishArtifact in Test := false,
   publishTo := Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"),
@@ -42,28 +42,27 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   resolvers += Resolver.url("scala-js-releases",
     url("http://dl.bintray.com/content/scala-js/scala-js-releases"))(
       Resolver.ivyStylePatterns),
-  addSbtPlugin("org.scala-lang.modules.scalajs" % "scalajs-sbt-plugin" % "0.5.4"),
+  addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJsVersion),
   libraryDependencies ++= Seq(
     "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-    "org.scala-lang.modules.scalajs" % s"scalajs-compiler_${scalaVersion.value}" % "0.5.4",
-    "org.scala-lang.modules.scalajs" %% "scalajs-tools" % "0.5.4",
     "io.spray" % "spray-can" % "1.3.1",
     "io.spray" % "spray-routing" % "1.3.1",
-    "com.typesafe.akka" %% "akka-actor" % "2.3.0",
-    "org.scala-lang.modules" %% "scala-async" % "0.9.1" % "provided",
-    "com.lihaoyi" %% "autowire" % "0.2.3",
-    "com.lihaoyi" %% "upickle" % "0.2.5"
+    "com.typesafe.akka" %% "akka-actor" % "2.3.9",
+    "org.scala-lang.modules" %% "scala-async" % "0.9.3" % "provided",
+    "com.lihaoyi" %% "autowire" % "0.2.5",
+    "com.lihaoyi" %% "upickle" % "0.2.8"
   ),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 )
 
-lazy val client = project.in(file("client"))
-                         .settings(defaultSettings ++ scalaJSSettings:_*)
+lazy val client = project.in(file("client")).enablePlugins(ScalaJSPlugin)
+                         .settings(defaultSettings: _*)
                          .settings(
+  unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  ".." / "shared" / "main" / "scala"),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules.scalajs" %%% "scalajs-dom" % "0.6",
-    "com.lihaoyi" %%% "autowire" % "0.2.3",
-    "com.lihaoyi" %%% "upickle" % "0.2.5"
+    "org.scala-js" %%% "scalajs-dom" % "0.8.0",
+    "com.lihaoyi" %%% "autowire" % "0.2.4",
+    "com.lihaoyi" %%% "upickle" % "0.2.6"
   ),
   emitSourceMaps := false
 )
