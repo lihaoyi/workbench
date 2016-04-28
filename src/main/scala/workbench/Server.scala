@@ -26,8 +26,18 @@ import scala.collection.mutable
 import scala.tools.nsc.typechecker.Analyzer
 import org.scalajs.core.tools.classpath.{CompleteClasspath, PartialClasspath}
 import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
+import spray.http.HttpHeaders._
+import spray.http.HttpMethods._
 
 class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
+  val corsHeaders: List[ModeledHeader] =
+    List(
+      `Access-Control-Allow-Methods`(OPTIONS, GET, POST),
+      `Access-Control-Allow-Origin`(AllOrigins),
+      `Access-Control-Allow-Headers`("Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding, Accept-Language, Host, Referer, User-Agent"),
+      `Access-Control-Max-Age`(1728000)
+    )
+
   implicit val system = ActorSystem(
     "Workbench-System",
     config = ConfigFactory.load(ActorSystem.getClass.getClassLoader),
@@ -62,7 +72,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     def respond(a: ActorRef, s: String) = {
       a ! HttpResponse(
         entity = s,
-        headers = List(`Access-Control-Allow-Origin`(AllOrigins))
+        headers = corsHeaders
       )
     }
     def receive = (x: Any) => (x, waitingActor, queuedMessages) match {
