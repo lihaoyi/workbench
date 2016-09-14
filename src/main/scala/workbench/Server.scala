@@ -92,8 +92,8 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
         respond(a, upickle.json.write(Js.Arr(msg)))
         waitingActor = None
 
-      case (Clear, waiting, Nil) =>
-        waiting.foreach(respond(_, upickle.json.write(Js.Arr())))
+      case (Clear, waitingOpt, msgs) =>
+        waitingOpt.foreach(respond(_, upickle.json.write(Js.Arr(msgs :_*))))
         waitingActor = None
     }
   })
