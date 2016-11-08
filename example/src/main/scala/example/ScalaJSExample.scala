@@ -1,6 +1,7 @@
 package example
 import scala.scalajs.js.annotation.JSExport
 import org.scalajs.dom
+import org.scalajs.dom.html
 import scala.util.Random
 
 case class Point(x: Int, y: Int){
@@ -8,14 +9,12 @@ case class Point(x: Int, y: Int){
   def /(d: Int) = Point(x / d, y / d)
 }
 
-// Seems like you need this for sbt ~fastOptJS to work
-// mkdir ~/.sbt/0.13/plugins/target/scala-2.10/sbt-0.13/classes
 @JSExport
 object ScalaJSExample {
   val ctx =
     dom.document
        .getElementById("canvas")
-       .asInstanceOf[dom.HTMLCanvasElement]
+       .asInstanceOf[html.Canvas]
        .getContext("2d")
        .asInstanceOf[dom.CanvasRenderingContext2D]
 
@@ -41,6 +40,6 @@ object ScalaJSExample {
   }
   @JSExport
   def main(): Unit = {
-    dom.setInterval(() => run, 10)
+    dom.window.setInterval(() => run, 10)
   }
 }

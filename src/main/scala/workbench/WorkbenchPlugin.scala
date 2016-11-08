@@ -5,24 +5,19 @@ import sbt.Keys._
 import autowire._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.core.tools.io._
-import org.scalajs.core.tools.optimizer.ScalaJSOptimizer
 import org.scalajs.sbtplugin.ScalaJSPluginInternal._
 import org.scalajs.sbtplugin.Implicits._
 
-object Plugin extends AutoPlugin {
+object WorkbenchPlugin extends AutoPlugin {
 
   override def requires = ScalaJSPlugin
 
   object autoImport {
     val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
-    val updateBrowsers = taskKey[Unit]("Partially resets some of the stuff in the browser")
+    val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
     val spliceBrowsers = taskKey[Unit]("Attempts to do a live update of the code running in the browser while maintaining state")
     val localUrl = settingKey[(String, Int)]("localUrl")
-    private[Plugin] val server = settingKey[Server]("local websocket server")
 
-
-    val bootSnippet = settingKey[String]("piece of javascript to make things happen")
-    val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
     val sjs = inputKey[Unit]("Run a command via the sjs REPL, which compiles it to Javascript and runs it in the browser")
     val replFile = taskKey[File]("The temporary file which holds the source code for the currently executing sjs REPL")
     val sjsReset = taskKey[Unit]("Reset the currently executing sjs REPL")
@@ -30,30 +25,12 @@ object Plugin extends AutoPlugin {
   import autoImport._
   import ScalaJSPlugin.AutoImport._
 
+  val server = settingKey[Server]("local websocket server")
+
   lazy val replHistory = collection.mutable.Buffer.empty[String]
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
-    updatedJS := {
-      var files: List[String] = Nil
-      ((crossTarget in Compile).value * "*.js").get.foreach {
-        (x: File) =>
-          streams.value.log.info("workbench: Checking " + x.getName)
-          FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
-            (f: Set[File]) =>
-              val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
-              files = fsPath :: files
-              f
-          }(Set(x))
-      }
-      files
-    },
-    updatedJS := {
-      updatedJS.value.map{ path =>
-        val url = localUrl.value
-        s"http://${url._1}:${url._2}$path"
-      }
-    },
     (extraLoggers in ThisBuild) := {
       val clientLogger = FullLogger{
         new Logger {
@@ -71,16 +48,28 @@ object Plugin extends AutoPlugin {
       streams.value.log.info("workbench: Reloading Pages...")
       server.value.Wire[Api].reload().call()
     },
-    updateBrowsers := {
-      val changed = updatedJS.value
-      // There is no point in clearing the browser if no js files have changed.
-      if (changed.length > 0) {
-        server.value.Wire[Api].clear().call()
-
-        changed.foreach { path =>
-          streams.value.log.info("workbench: Refreshing " + path)
-          server.value.Wire[Api].run(path, Some(bootSnippet.value)).call()
-        }
+    // this currently requires the old <<= syntax
+    // see https://github.com/sbt/sbt/issues/1444
+    refreshBrowsers <<= refreshBrowsers.triggeredBy(fastOptJS in Compile),
+    updatedJS := {
+      var files: List[String] = Nil
+      ((crossTarget in Compile).value * "*.js").get.foreach {
+        (x: File) =>
+          streams.value.log.info("workbench: Checking " + x.getName)
+          FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
+            (f: Set[File]) =>
+              val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
+              files = fsPath :: files
+              f
+          }(Set(x))
+      }
+      files
+    },
+    updatedJS := {
+      val paths = updatedJS.value
+      val url = localUrl.value
+      paths.map { path =>
+        s"http://${url._1}:${url._2}$path"
       }
     },
     spliceBrowsers := {
@@ -91,17 +80,17 @@ object Plugin extends AutoPlugin {
           path <- changed
           if !path.endsWith(".js.js")
         }{
-
           streams.value.log.info("workbench: Splicing " + path)
-          val prefix = "http://localhost:12345/"
+          val url = localUrl.value
+          val prefix = s"http://${url._1}:${url._2}/"
           val s = munge(sbt.IO.read(new sbt.File(path.drop(prefix.length))))
 
           sbt.IO.write(new sbt.File(path.drop(prefix.length) + ".js"), s.getBytes)
-          server.value.Wire[Api].run(path + ".js", None).call()
+          server.value.Wire[Api].run(path + ".js").call()
         }
       }
     },
-    server := new Server(localUrl.value._1, localUrl.value._2, bootSnippet.value),
+    server := new Server(localUrl.value._1, localUrl.value._2),
     (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
       server.value.kill()
       state
@@ -110,7 +99,6 @@ object Plugin extends AutoPlugin {
     artifactPath in sjs := crossTarget.value / "repl.js",
     replFile := {
       val f = sourceManaged.value / "repl.scala"
-      println("Creating replFile\n" + replHistory.mkString("\n"))
       sbt.IO.write(f, replHistory.mkString("\n"))
       f
     },
@@ -140,21 +128,21 @@ object Plugin extends AutoPlugin {
             Some(output.getParentFile.toURI())
           else None
 
-        import ScalaJSOptimizer._
-
-        (scalaJSOptimizer in fastOptJS).value.optimizeCP(
-          (scalaJSPreLinkClasspath in fastOptJS).value,
-          Config(
-            output = WritableFileVirtualJSFile(output),
-            cache = None,
-            wantSourceMap = (emitSourceMaps in fastOptJS).value,
-            relativizeSourceMapBase = relSourceMapBase,
-            checkIR = (scalaJSOptimizerOptions in fastOptJS).value.checkScalaJSIR,
-            disableOptimizer = (scalaJSOptimizerOptions in fastOptJS).value.disableOptimizer,
-            batchMode = (scalaJSOptimizerOptions in fastOptJS).value.batchMode
-            ),
-          s.log
-        )
+        // TODO: re-enable this feature for latest scalajs 
+        // NOTE: maybe use 'scalaJSOptimizerOptions in fullOptJS'
+        // (scalaJSOptimizer in fastOptJS).value.optimizeCP(
+        //   (scalaJSPreLinkClasspath in fastOptJS).value,
+        //   Config(
+        //     output = WritableFileVirtualJSFile(output),
+        //     cache = None,
+        //     wantSourceMap = (emitSourceMaps in fastOptJS).value,
+        //     relativizeSourceMapBase = relSourceMapBase,
+        //     checkIR = (scalaJSOptimizerOptions in fastOptJS).value.checkScalaJSIR,
+        //     disableOptimizer = (scalaJSOptimizerOptions in fastOptJS).value.disableOptimizer,
+        //     batchMode = (scalaJSOptimizerOptions in fastOptJS).value.batchMode
+        //     ),
+        //   s.log
+        // )
         // end of C&P
         val outPath = sbt.IO.relativize(
           baseDirectory.value,
@@ -167,8 +155,7 @@ object Plugin extends AutoPlugin {
         )
         Def.task {
           server.value.Wire[Api].run(
-            s"http://localhost:12345/$outPath",
-            None
+            s"http://localhost:12345/$outPath"
           ).call()
           ()
         }

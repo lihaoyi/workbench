@@ -1,25 +1,15 @@
-import com.lihaoyi.workbench.Plugin._
-
-// Turn this project into a Scala.js project by importing these settings
 enablePlugins(ScalaJSPlugin)
-
-workbenchSettings
+enablePlugins(WorkbenchPlugin)
 
 name := "Example"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.12.0"
 
 version := "0.1-SNAPSHOT"
 
-resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
-
 libraryDependencies ++= Seq(
-  "org.scala-js" %%% "scalajs-dom" % "0.8.0"
+  "org.scala-js" %%% "scalajs-dom" % "0.9.1"
 )
 
-bootSnippet := "ScalaJSExample().main();"
-
-disableOptimizer := true
-
+// (experimental feature)
 spliceBrowsers <<= spliceBrowsers.triggeredBy(fastOptJS in Compile)
-

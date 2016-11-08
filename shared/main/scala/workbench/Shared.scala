@@ -1,13 +1,15 @@
 package com.lihaoyi.workbench
 
-import upickle.{Js, Reader, Writer}
+import upickle.default.{Reader, Writer}
+import upickle.Js
+
 
 /**
  * A standard way to read and write `Js.Value`s with autowire/upickle
  */
 trait ReadWrite{
-  def write[Result: Writer](r: Result) = upickle.writeJs(r)
-  def read[Result: Reader](p: Js.Value) = upickle.readJs[Result](p)
+  def write[Result: Writer](r: Result) = upickle.default.writeJs(r)
+  def read[Result: Reader](p: Js.Value) = upickle.default.readJs[Result](p)
 }
 
 /**
@@ -31,8 +33,7 @@ trait Api{
   def print(level: String, msg: String): Unit
 
   /**
-   * Execute the javascript file available at the given `path`. Optionally,
-   * run a `bootSnippet` after the file has been executed.
+   * Execute the javascript file available at the given `path`.
    */
-  def run(path: String, bootSnippet: Option[String]): Unit
+  def run(path: String): Unit
 }

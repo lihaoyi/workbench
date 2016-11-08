@@ -8,13 +8,13 @@ import spray.httpx.encoding.Gzip
 import spray.routing.SimpleRoutingApp
 import akka.actor.ActorDSL._
 
-import upickle.{Reader, Writer, Js}
+import upickle.Js
+import upickle.default.{Reader, Writer}
 import spray.http.{HttpEntity, AllOrigins, HttpResponse}
 import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
 import concurrent.duration._
 import scala.concurrent.Future
 import scala.io.Source
-import org.scalajs.core.tools.optimizer.{ScalaJSClosureOptimizer, ScalaJSOptimizer}
 import org.scalajs.core.tools.io._
 import org.scalajs.core.tools.logging.Level
 import scala.tools.nsc
@@ -24,12 +24,11 @@ import scala.tools.nsc.backend.JavaPlatform
 import scala.tools.nsc.util.ClassPath.JavaContext
 import scala.collection.mutable
 import scala.tools.nsc.typechecker.Analyzer
-import org.scalajs.core.tools.classpath.{CompleteClasspath, PartialClasspath}
 import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
 import spray.http.HttpHeaders._
 import spray.http.HttpMethods._
 
-class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingApp{
+class Server(url: String, port: Int) extends SimpleRoutingApp{
   val corsHeaders: List[ModeledHeader] =
     List(
       `Access-Control-Allow-Methods`(OPTIONS, GET, POST),
@@ -47,9 +46,9 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
   /**
    * The connection from workbench server to the client
    */
-  object Wire extends autowire.Client[Js.Value, upickle.Reader, upickle.Writer] with ReadWrite{
+  object Wire extends autowire.Client[Js.Value, Reader, Writer] with ReadWrite{
     def doCall(req: Request): Future[Js.Value] = {
-      longPoll ! Js.Arr(upickle.writeJs(req.path), Js.Obj(req.args.toSeq:_*))
+      longPoll ! Js.Arr(upickle.default.writeJs(req.path), Js.Obj(req.args.toSeq:_*))
       Future.successful(Js.Null)
     }
   }
@@ -68,7 +67,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
     case object Clear
     import system.dispatcher
 
-    system.scheduler.schedule(0 seconds, 10 seconds, self, Clear)
+    system.scheduler.schedule(0.seconds, 10.seconds, self, Clear)
     def respond(a: ActorRef, s: String) = {
       a ! HttpResponse(
         entity = s,
@@ -116,7 +115,7 @@ class Server(url: String, port: Int, bootSnippet: String) extends SimpleRoutingA
           (function(){
             $body
 
-            com.lihaoyi.workbench.WorkbenchClient().main(${upickle.write(bootSnippet)}, ${upickle.write(url)}, ${upickle.write(port)})
+            com.lihaoyi.workbench.WorkbenchClient().main(${upickle.default.write(url)}, ${upickle.default.write(port)})
           }).call(this)
           """
         }
