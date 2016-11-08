@@ -3,27 +3,32 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import sbt._
 import sbt.Keys._
 import autowire._
-import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport
+import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.core.tools.io._
 import org.scalajs.core.tools.optimizer.ScalaJSOptimizer
 import org.scalajs.sbtplugin.ScalaJSPluginInternal._
 import org.scalajs.sbtplugin.Implicits._
 
-import AutoImport._
-object Plugin extends sbt.Plugin {
+object Plugin extends AutoPlugin {
 
-  val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
-  val updateBrowsers = taskKey[Unit]("Partially resets some of the stuff in the browser")
-  val spliceBrowsers = taskKey[Unit]("Attempts to do a live update of the code running in the browser while maintaining state")
-  val localUrl = settingKey[(String, Int)]("localUrl")
-  private[this] val server = settingKey[Server]("local websocket server")
+  override def requires = ScalaJSPlugin
+
+  object autoImport {
+    val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
+    val updateBrowsers = taskKey[Unit]("Partially resets some of the stuff in the browser")
+    val spliceBrowsers = taskKey[Unit]("Attempts to do a live update of the code running in the browser while maintaining state")
+    val localUrl = settingKey[(String, Int)]("localUrl")
+    private[Plugin] val server = settingKey[Server]("local websocket server")
 
 
-  val bootSnippet = settingKey[String]("piece of javascript to make things happen")
-  val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
-  val sjs = inputKey[Unit]("Run a command via the sjs REPL, which compiles it to Javascript and runs it in the browser")
-  val replFile = taskKey[File]("The temporary file which holds the source code for the currently executing sjs REPL")
-  val sjsReset = taskKey[Unit]("Reset the currently executing sjs REPL")
+    val bootSnippet = settingKey[String]("piece of javascript to make things happen")
+    val updatedJS = taskKey[List[String]]("Provides the addresses of the JS files that have changed")
+    val sjs = inputKey[Unit]("Run a command via the sjs REPL, which compiles it to Javascript and runs it in the browser")
+    val replFile = taskKey[File]("The temporary file which holds the source code for the currently executing sjs REPL")
+    val sjsReset = taskKey[Unit]("Reset the currently executing sjs REPL")
+  }
+  import autoImport._
+  import ScalaJSPlugin.AutoImport._
 
   lazy val replHistory = collection.mutable.Buffer.empty[String]
 
@@ -43,9 +48,10 @@ object Plugin extends sbt.Plugin {
       }
       files
     },
-    updatedJS <<= (updatedJS, localUrl) map { (paths, localUrl) =>
-      paths.map { path =>
-        s"http://${localUrl._1}:${localUrl._2}$path"
+    updatedJS := {
+      updatedJS.value.map{ path =>
+        val url = localUrl.value
+        s"http://${url._1}:${url._2}$path"
       }
     },
     (extraLoggers in ThisBuild) := {
@@ -109,7 +115,7 @@ object Plugin extends sbt.Plugin {
       f
     },
     sources in Compile += replFile.value,
-    sjs <<= Def.inputTaskDyn {
+    sjs := Def.inputTaskDyn {
       import sbt.complete.Parsers._
       val str = sbt.complete.Parsers.any.*.parsed.mkString
       val newSnippet = s"""
@@ -172,8 +178,10 @@ object Plugin extends sbt.Plugin {
       println("Clearing sjs REPL History")
       replHistory.clear()
     },
-    sjsReset <<= sjsReset.triggeredBy(fastOptJS)
+    sjsReset := sjsReset.triggeredBy(fastOptJS)
   ))
+
+  override def projectSettings = workbenchSettings
 
   def munge(s0: String) = {
     var s = s0

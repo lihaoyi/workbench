@@ -3,13 +3,13 @@ import sbt.Keys._
 val scalaJsVersion = "0.6.2"
 
 val defaultSettings = Seq(
-  unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  "shared" / "main" / "scala"),
-  unmanagedSourceDirectories in Test <+= baseDirectory(_ / "shared" / "test" / "scala")
+  unmanagedSourceDirectories in Compile += baseDirectory.value /  "shared" / "main" / "scala",
+  unmanagedSourceDirectories in Test += baseDirectory.value / "shared" / "test" / "scala"
 )
 
 lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   name := "workbench",
-  version := "0.2.3",
+  version := "0.3.0-SNAPSHOT",
   organization := "com.lihaoyi",
   scalaVersion := "2.10.5",
   sbtPlugin := true,
@@ -41,8 +41,8 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
   },
   resolvers += Resolver.url("scala-js-releases",
     url("http://dl.bintray.com/content/scala-js/scala-js-releases"))(
-      Resolver.ivyStylePatterns),
-  addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJsVersion),
+    Resolver.ivyStylePatterns),
+  addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.1"),
   libraryDependencies ++= Seq(
     "org.scala-lang" % "scala-compiler" % scalaVersion.value,
     "io.spray" % "spray-can" % "1.3.1",
@@ -58,7 +58,7 @@ lazy val root = project.in(file(".")).settings(defaultSettings:_*).settings(
 lazy val client = project.in(file("client")).enablePlugins(ScalaJSPlugin)
                          .settings(defaultSettings: _*)
                          .settings(
-  unmanagedSourceDirectories in Compile <+= baseDirectory(_ /  ".." / "shared" / "main" / "scala"),
+  unmanagedSourceDirectories in Compile += baseDirectory.value /  ".." / "shared" / "main" / "scala",
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.8.0",
     "com.lihaoyi" %%% "autowire" % "0.2.4",
