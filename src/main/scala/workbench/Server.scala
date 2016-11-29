@@ -57,8 +57,9 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
    * Actor meant to handle long polling, buffering messages or waiting actors
    */
   private val longPoll = actor(new Actor{
-    var waitingActor: Option[ActorRef] = None
+    var waitingActors = List[ActorRef]()
     var queuedMessages = List[Js.Value]()
+    var numActorsLastRespond: Int = 0
 
     /**
      * Flushes returns nothing to any waiting actor every so often,
@@ -68,32 +69,31 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
     import system.dispatcher
 
     system.scheduler.schedule(0.seconds, 10.seconds, self, Clear)
-    def respond(a: ActorRef, s: String) = {
-      a ! HttpResponse(
-        entity = s,
-        headers = corsHeaders
-      )
+
+    def respond() = {
+//      println(s"respond: #actors: ${waitingActors.size}, #msgs: ${queuedMessages.size}")
+      val httpResponse = HttpResponse(
+        headers = corsHeaders,
+        entity = upickle.json.write(Js.Arr(queuedMessages:_*)))
+
+      waitingActors.foreach(_ ! httpResponse)
+      numActorsLastRespond = waitingActors.size
+      waitingActors = Nil
+      queuedMessages = Nil
     }
-    def receive = (x: Any) => (x, waitingActor, queuedMessages) match {
-      case (a: ActorRef, _, Nil) =>
-        // Even if there's someone already waiting,
-        // a new actor waiting replaces the old one
-        waitingActor = Some(a)
 
-      case (a: ActorRef, None, msgs) =>
-        respond(a, upickle.json.write(Js.Arr(msgs:_*)))
-        queuedMessages = Nil
+    def receive = (x: Any) => x match {
+      case a: ActorRef =>
+        waitingActors = a :: waitingActors
+        // comparison to numActorsLastRespond increases the chance to reload all pages in case of multiple clients
+        if (queuedMessages.nonEmpty && numActorsLastRespond > 0 && waitingActors.size >= numActorsLastRespond)
+          respond()
 
-      case (msg: Js.Arr, None, msgs) =>
-        queuedMessages = msg :: msgs
+      case msg: Js.Arr =>
+        queuedMessages = msg :: queuedMessages
+        if (waitingActors.nonEmpty) respond()
 
-      case (msg: Js.Arr, Some(a), Nil) =>
-        respond(a, upickle.json.write(Js.Arr(msg)))
-        waitingActor = None
-
-      case (Clear, waitingOpt, msgs) =>
-        waitingOpt.foreach(respond(_, upickle.json.write(Js.Arr(msgs :_*))))
-        waitingActor = None
+      case Clear => respond()
     }
   })
 
