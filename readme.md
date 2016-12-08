@@ -30,6 +30,10 @@ enablePlugins(WorkbenchPlugin)
 
 Once the above installation steps are completed, simply open your desired HTML file via `http://localhost:12345` with the URL path being any file part relative to your project root. e.g. `localhost:12345/target/scala-2.12/classes/index.html`. This should serve up the HTML file and connect it to workbench.
 
+If you want to serve a defaultRootObject on `http://localhost:12345` and serve only files from a root directory you can set this via:
+```scala
+workbenchDefaultRootObject := Some(("build/index-dev.html", "build/"))  // (defaultRootObject, rootDirectory) 
+```
 
 # Live Reloading
 

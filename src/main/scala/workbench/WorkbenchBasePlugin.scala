@@ -14,6 +14,7 @@ object WorkbenchBasePlugin extends AutoPlugin {
 
   object autoImport {
     val localUrl = settingKey[(String, Int)]("localUrl")
+    val workbenchDefaultRootObject = settingKey[Option[(String, String)]]("path to defaultRootObject served on `/` and rootDirectory")
   }
   import autoImport._
   import ScalaJSPlugin.AutoImport._
@@ -24,6 +25,7 @@ object WorkbenchBasePlugin extends AutoPlugin {
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
+    workbenchDefaultRootObject := None,
     (extraLoggers in ThisBuild) := {
       val clientLogger = FullLogger{
         new Logger {
@@ -37,7 +39,7 @@ object WorkbenchBasePlugin extends AutoPlugin {
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
     },
-    server := new Server(localUrl.value._1, localUrl.value._2),
+    server := new Server(localUrl.value._1, localUrl.value._2, workbenchDefaultRootObject.value.map(_._1), workbenchDefaultRootObject.value.map(_._2)),
     (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
       server.value.kill()
       state

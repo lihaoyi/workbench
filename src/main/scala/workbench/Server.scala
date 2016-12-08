@@ -28,7 +28,7 @@ import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
 import spray.http.HttpHeaders._
 import spray.http.HttpMethods._
 
-class Server(url: String, port: Int) extends SimpleRoutingApp{
+class Server(url: String, port: Int, defaultRootObject: Option[String] = None, rootDirectory: Option[String] = None) extends SimpleRoutingApp{
   val corsHeaders: List[ModeledHeader] =
     List(
       `Access-Control-Allow-Methods`(OPTIONS, GET, POST),
@@ -120,7 +120,10 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
           """
         }
       } ~
-      getFromDirectory(".")
+      pathSingleSlash {
+        getFromFile(defaultRootObject.getOrElse(""))
+      } ~
+      getFromDirectory(rootDirectory.getOrElse("."))
 
     } ~
     post {
