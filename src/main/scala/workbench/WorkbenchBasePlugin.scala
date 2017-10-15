@@ -7,6 +7,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.core.tools.io._
 import org.scalajs.sbtplugin.ScalaJSPluginInternal._
 import org.scalajs.sbtplugin.Implicits._
+import scala.collection._
 
 object WorkbenchBasePlugin extends AutoPlugin {
 
@@ -20,11 +21,12 @@ object WorkbenchBasePlugin extends AutoPlugin {
 
   val server = settingKey[Server]("local websocket server")
 
+
   lazy val replHistory = collection.mutable.Buffer.empty[String]
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
-    (extraLoggers in ThisBuild) := {
+    /*(extraLoggers in ThisBuild) := {
       val clientLogger = FullLogger{
         new Logger {
           def log(level: Level.Value, message: => String) =
@@ -36,7 +38,7 @@ object WorkbenchBasePlugin extends AutoPlugin {
       clientLogger.setSuccessEnabled(true)
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
-    },
+    },*/
     server := new Server(localUrl.value._1, localUrl.value._2),
     (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
       server.value.kill()
@@ -44,6 +46,9 @@ object WorkbenchBasePlugin extends AutoPlugin {
     }}
   )
 
+  private def getScopeId(scope: ScopeAxis[sbt.Reference]):String = {
+     "" + scope.hashCode()
+  }
   override def projectSettings = workbenchSettings
 
 }

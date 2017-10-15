@@ -21,13 +21,16 @@ object WorkbenchSplicePlugin extends AutoPlugin {
   import WorkbenchBasePlugin.server
   import ScalaJSPlugin.AutoImport._
 
+
   val spliceSettings = Seq(
     updatedJS := {
+      val streamsValue = streams.value
+
       var files: List[String] = Nil
       ((crossTarget in Compile).value * "*.js").get.foreach {
         (x: File) =>
-          streams.value.log.info("workbench: Checking " + x.getName)
-          FileFunction.cached(streams.value.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
+          streamsValue.log.info("workbench: Checking " + x.getName)
+          FileFunction.cached(streamsValue.cacheDirectory / x.getName, FilesInfo.lastModified, FilesInfo.lastModified) {
             (f: Set[File]) =>
               val fsPath = f.head.getAbsolutePath.drop(new File("").getAbsolutePath.length)
               files = fsPath :: files
@@ -44,6 +47,8 @@ object WorkbenchSplicePlugin extends AutoPlugin {
       }
     },
     spliceBrowsers := {
+      val streamsValue = streams.value
+
       val changed = updatedJS.value
       // There is no point in clearing the browser if no js files have changed.
       if (changed.length > 0) {
@@ -51,7 +56,7 @@ object WorkbenchSplicePlugin extends AutoPlugin {
           path <- changed
           if !path.endsWith(".js.js")
         }{
-          streams.value.log.info("workbench: Splicing " + path)
+          streamsValue.log.info("workbench: Splicing " + path)
           val url = localUrl.value
           val prefix = s"http://${url._1}:${url._2}/"
           val s = munge(sbt.IO.read(new sbt.File(path.drop(prefix.length))))
@@ -61,7 +66,7 @@ object WorkbenchSplicePlugin extends AutoPlugin {
         }
       }
     },
-    spliceBrowsers <<= spliceBrowsers.triggeredBy(fastOptJS in Compile)
+    spliceBrowsers := spliceBrowsers.triggeredBy(fastOptJS in Compile).value
   )
     
   override def projectSettings = spliceSettings
