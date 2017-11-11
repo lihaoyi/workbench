@@ -4,7 +4,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 object Dependencies {
 
   // jvm dependencies
-  val akkaHttp = "com.typesafe.akka" % "akka-http_2.12" % "10.0.10"
+  val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
   val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.19"
 
   // js and shared dependencies

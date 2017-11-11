@@ -1,12 +1,10 @@
 package com.lihaoyi.workbench
-import scala.concurrent.ExecutionContext.Implicits.global
 import sbt._
 import sbt.Keys._
 import autowire._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.core.tools.io._
-import org.scalajs.sbtplugin.ScalaJSPluginInternal._
-import org.scalajs.sbtplugin.Implicits._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object WorkbenchPlugin extends AutoPlugin {
 
@@ -16,7 +14,6 @@ object WorkbenchPlugin extends AutoPlugin {
     val refreshBrowsers = taskKey[Unit]("Sends a message to all connected web pages asking them to refresh the page")
   }
   import autoImport._
-  import WorkbenchBasePlugin.autoImport._
   import WorkbenchBasePlugin.server
   import ScalaJSPlugin.AutoImport._
 
