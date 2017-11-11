@@ -1,24 +1,28 @@
 package com.lihaoyi.workbench
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import sbt._
 import sbt.Keys._
 import autowire._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.core.tools.io._
-import org.scalajs.sbtplugin.ScalaJSPluginInternal._
-import org.scalajs.sbtplugin.Implicits._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object WorkbenchBasePlugin extends AutoPlugin {
 
   override def requires = ScalaJSPlugin
 
   object autoImport {
+
     sealed trait StartMode
 
     object WorkbenchStartModes {
+
       case object OnCompile extends StartMode
+
       case object OnSbtLoad extends StartMode
+
       case object Manual extends StartMode
+
     }
 
     val localUrl = settingKey[(String, Int)]("localUrl")
@@ -29,7 +33,6 @@ object WorkbenchBasePlugin extends AutoPlugin {
   }
   import autoImport._
   import WorkbenchStartModes._
-  import ScalaJSPlugin.AutoImport._
 
   val server = settingKey[Server]("local websocket server")
 
@@ -39,10 +42,10 @@ object WorkbenchBasePlugin extends AutoPlugin {
     localUrl := ("localhost", 12345),
     workbenchDefaultRootObject := None,
     (extraLoggers in ThisBuild) := {
-      val clientLogger = FullLogger{
+      val clientLogger = FullLogger {
         new Logger {
           def log(level: Level.Value, message: => String) =
-            if(level >= Level.Info) server.value.Wire[Api].print(level.toString, message).call()
+            if (level >= Level.Info) server.value.Wire[Api].print(level.toString, message).call()
           def success(message: => String) = server.value.Wire[Api].print("info", message).call()
           def trace(t: => Throwable) = server.value.Wire[Api].print("error", t.toString).call()
         }
@@ -64,12 +67,13 @@ object WorkbenchBasePlugin extends AutoPlugin {
           if (workbenchStartMode.value == OnCompile) server.value.start()
         })
       .value,
-    (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
-      server.value.kill()
-      state
-    }}
+    (onUnload in Global) := {
+      (onUnload in Global).value.compose { state =>
+        server.value.kill()
+        state
+      }
+    }
   )
 
   override def projectSettings = workbenchSettings
-
 }

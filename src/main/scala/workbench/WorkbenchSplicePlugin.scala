@@ -1,12 +1,11 @@
 package com.lihaoyi.workbench
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import sbt._
 import sbt.Keys._
 import autowire._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.core.tools.io._
-import org.scalajs.sbtplugin.ScalaJSPluginInternal._
-import org.scalajs.sbtplugin.Implicits._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object WorkbenchSplicePlugin extends AutoPlugin {
 
@@ -46,11 +45,11 @@ object WorkbenchSplicePlugin extends AutoPlugin {
     spliceBrowsers := {
       val changed = updatedJS.value
       // There is no point in clearing the browser if no js files have changed.
-      if (changed.length > 0) {
-        for{
+      if (changed.nonEmpty) {
+        for {
           path <- changed
           if !path.endsWith(".js.js")
-        }{
+        } {
           streams.value.log.info("workbench: Splicing " + path)
           val url = localUrl.value
           val prefix = s"http://${url._1}:${url._2}/"
@@ -63,7 +62,7 @@ object WorkbenchSplicePlugin extends AutoPlugin {
     },
     spliceBrowsers := spliceBrowsers.triggeredBy(fastOptJS in Compile).value
   )
-    
+
   override def projectSettings = spliceSettings
 
   def munge(s0: String) = {
@@ -79,10 +78,9 @@ object WorkbenchSplicePlugin extends AutoPlugin {
         |})()
         |""".stripMargin
     )
-    for(char <- Seq("d", "c", "h", "i", "n", "m")){
+    for (char <- Seq("d", "c", "h", "i", "n", "m")) {
       s = s.replaceAll("\n(ScalaJS\\." + char + "\\.[a-zA-Z_$0-9]+) = ", "\n$1 = $1 || ")
     }
     s
   }
-
 }

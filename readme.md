@@ -1,4 +1,4 @@
-workbench 0.3.0
+workbench 0.3.1
 ---------------
 
 ![Example](https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true)
@@ -15,7 +15,7 @@ Installation
 ------------
 - Add to your `project/plugins.sbt`
 ```scala
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.0")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.1")
 ```
 - Add to your `build.sbt`
 ```scala
@@ -110,28 +110,33 @@ Pull requests welcome!
 Change Log
 ----------
 
-##0.3.0
+## 0.3.1
+- Support for custom `defaultRootObject` and `rootDirectory` (by @torstenrudolf)
+- Custom Server starting behaviour (by @torstenrudolf)
+- Support multiple concurrent clients (by @torstenrudolf)
+
+## 0.3.0
 - Migration to AutoPlugins
 - Removal of `updateBrowsers` feature, made obsolete by increased speed of `fastOptJS`
 - General upgrade of dependencies
 
-##0.2.3
+## 0.2.3
 
 - Upgraded uPickle, removed need for special resolver
 
-##0.2.2
+## 0.2.2
 
 - First implementation of `spliceBrowsers`
 
-##0.2.1
+## 0.2.1
 
 - Added missing resolver `http://dl.bintray.com/non/maven`
 
-##0.2.0
+## 0.2.0
 
 - First implementation of workbench client in Scala.js
 
-##0.1.5
+## 0.1.5
 
 - Properly kill the spray server on plugin unload, `sbt reload` now works 
 - Swap out `play-json` with `upickle`

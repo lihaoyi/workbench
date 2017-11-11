@@ -1,4 +1,5 @@
 package com.lihaoyi.workbench
+
 import upickle.Js
 import upickle.default
 import upickle.default.{Reader, Writer}
@@ -11,17 +12,18 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom.raw._
 
 /**
- * The connection from workbench server to the client
- */
-object Wire extends autowire.Server[Js.Value, Reader, Writer] with ReadWrite{
+  * The connection from workbench server to the client
+  */
+object Wire extends autowire.Server[Js.Value, Reader, Writer] with ReadWrite {
   def wire(parsed: Js.Arr): Unit = {
     val Js.Arr(path, args: Js.Obj) = parsed
     val req = new Request(default.readJs[Seq[String]](path), args.value.toMap)
     Wire.route[Api](WorkbenchClient).apply(req)
   }
 }
+
 @JSExport
-object WorkbenchClient extends Api{
+object WorkbenchClient extends Api {
   @JSExport
   lazy val shadowBody = dom.document.body.cloneNode(deep = true)
 
@@ -60,7 +62,7 @@ object WorkbenchClient extends Api{
   @JSExport
   override def clear(): Unit = {
     dom.document.asInstanceOf[js.Dynamic].body = shadowBody.cloneNode(true)
-    for(i <- 0 until 100000){
+    for (i <- 0 until 100000) {
       dom.window.clearTimeout(i)
       dom.window.clearInterval(i)
     }

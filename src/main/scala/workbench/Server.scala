@@ -1,32 +1,18 @@
 package com.lihaoyi.workbench
 
-import akka.actor.{ActorRef, Actor, ActorSystem}
-import akka.util.ByteString
-import com.typesafe.config.ConfigFactory
-import sbt.{Logger, IO}
-import spray.httpx.encoding.Gzip
-import spray.routing.SimpleRoutingApp
 import akka.actor.ActorDSL._
-
+import akka.actor.{Actor, ActorRef, ActorSystem}
+import com.typesafe.config.ConfigFactory
+import sbt.IO
+import spray.http.HttpHeaders.{`Access-Control-Allow-Origin`, _}
+import spray.http.HttpMethods._
+import spray.http.{AllOrigins, HttpResponse}
+import spray.routing.SimpleRoutingApp
 import upickle.Js
 import upickle.default.{Reader, Writer}
-import spray.http.{HttpEntity, AllOrigins, HttpResponse}
-import spray.http.HttpHeaders.`Access-Control-Allow-Origin`
-import concurrent.duration._
-import scala.concurrent.Future
-import scala.io.Source
-import org.scalajs.core.tools.io._
-import org.scalajs.core.tools.logging.Level
-import scala.tools.nsc
-import scala.tools.nsc.Settings
 
-import scala.tools.nsc.backend.JavaPlatform
-import scala.tools.nsc.util.ClassPath.JavaContext
-import scala.collection.mutable
-import scala.tools.nsc.typechecker.Analyzer
-import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
-import spray.http.HttpHeaders._
-import spray.http.HttpMethods._
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class Server(url: String, port: Int, defaultRootObject: Option[String] = None, rootDirectory: Option[String] = None) extends SimpleRoutingApp{
   val corsHeaders: List[ModeledHeader] =
@@ -57,8 +43,8 @@ class Server(url: String, port: Int, defaultRootObject: Option[String] = None, r
    * Actor meant to handle long polling, buffering messages or waiting actors
    */
   private val longPoll = actor(new Actor{
-    var waitingActors = List[ActorRef]()
-    var queuedMessages = List[Js.Value]()
+    var waitingActors = List.empty[ActorRef]
+    var queuedMessages = List.empty[Js.Value]
     var numActorsLastRespond: Int = 0
 
     /**
@@ -70,7 +56,7 @@ class Server(url: String, port: Int, defaultRootObject: Option[String] = None, r
 
     system.scheduler.schedule(0.seconds, 10.seconds, self, Clear)
 
-    def respond() = {
+    def respond(): Unit = {
 //      println(s"respond: #actors: ${waitingActors.size}, #msgs: ${queuedMessages.size}")
       val httpResponse = HttpResponse(
         headers = corsHeaders,
@@ -82,7 +68,7 @@ class Server(url: String, port: Int, defaultRootObject: Option[String] = None, r
       queuedMessages = Nil
     }
 
-    def receive = (x: Any) => x match {
+    override def receive: Receive = {
       case a: ActorRef =>
         waitingActors = a :: waitingActors
         // comparison to numActorsLastRespond increases the chance to reload all pages in case of multiple clients

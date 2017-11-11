@@ -1,12 +1,11 @@
 package com.lihaoyi.workbench
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import sbt._
 import sbt.Keys._
 import autowire._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.core.tools.io._
-import org.scalajs.sbtplugin.ScalaJSPluginInternal._
-import org.scalajs.sbtplugin.Implicits._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object WorkbenchPlugin extends AutoPlugin {
 
@@ -31,5 +30,4 @@ object WorkbenchPlugin extends AutoPlugin {
   )
 
   override def projectSettings = workbenchSettings
-
 }
