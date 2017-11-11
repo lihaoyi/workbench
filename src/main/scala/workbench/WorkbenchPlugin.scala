@@ -27,7 +27,7 @@ object WorkbenchPlugin extends AutoPlugin {
     },
     // this currently requires the old <<= syntax
     // see https://github.com/sbt/sbt/issues/1444
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(fastOptJS in Compile)
+    refreshBrowsers := refreshBrowsers.triggeredBy(fastOptJS in Compile).value
   )
 
   override def projectSettings = workbenchSettings

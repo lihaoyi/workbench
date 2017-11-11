@@ -33,6 +33,7 @@ Once the above installation steps are completed, simply open your desired HTML f
 If you want to serve a defaultRootObject on `http://localhost:12345` and serve only files from a root directory you can set this via:
 ```scala
 workbenchDefaultRootObject := Some(("build/index-dev.html", "build/"))  // (defaultRootObject, rootDirectory) 
+```
 
 #### Server Starting Behaviour
 

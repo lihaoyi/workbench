@@ -61,7 +61,7 @@ object WorkbenchSplicePlugin extends AutoPlugin {
         }
       }
     },
-    spliceBrowsers <<= spliceBrowsers.triggeredBy(fastOptJS in Compile)
+    spliceBrowsers := spliceBrowsers.triggeredBy(fastOptJS in Compile).value
   )
     
   override def projectSettings = spliceSettings

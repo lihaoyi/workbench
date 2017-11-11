@@ -125,18 +125,15 @@ class Server(url: String, port: Int, defaultRootObject: Option[String] = None, r
             """
           }
         } ~
-        getFromDirectory(".")
-      } ~
-      pathSingleSlash {
-        getFromFile(defaultRootObject.getOrElse(""))
-      } ~
-      getFromDirectory(rootDirectory.getOrElse("."))
-
-    } ~
-    post {
-      path("notifications") { ctx =>
-        longPoll ! ctx.responder
-      }
+          pathSingleSlash {
+            getFromFile(defaultRootObject.getOrElse(""))
+          } ~
+          getFromDirectory(rootDirectory.getOrElse("."))
+      } ~ post {
+          path("notifications") { ctx =>
+            longPoll ! ctx.responder
+          }
+        }
     }
   }
 
