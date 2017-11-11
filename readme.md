@@ -30,6 +30,22 @@ enablePlugins(WorkbenchPlugin)
 
 Once the above installation steps are completed, simply open your desired HTML file via `http://localhost:12345` with the URL path being any file part relative to your project root. e.g. `localhost:12345/target/scala-2.12/classes/index.html`. This should serve up the HTML file and connect it to workbench.
 
+If you want to serve a defaultRootObject on `http://localhost:12345` and serve only files from a root directory you can set this via:
+```scala
+workbenchDefaultRootObject := Some(("build/index-dev.html", "build/"))  // (defaultRootObject, rootDirectory) 
+
+#### Server Starting Behaviour
+
+By default, the server starts up when sbt loads. Ie, starting the sbt terminal via `sbt` will start the server as well.
+This behaviour can be changed by adding on of the following settings to your `build.sbt`:
+- start the server on compilation (eg when running `sbt "~fastOptJS"`)
+```scala
+workbenchStartMode := WorkbenchStartModes.OnCompile
+```
+- start the server manually using the `startWorkbenchServer` task
+```scala
+workbenchStartMode := WorkbenchStartModes.Manual
+```
 
 # Live Reloading
 

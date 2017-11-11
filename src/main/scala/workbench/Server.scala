@@ -28,7 +28,7 @@ import scala.tools.nsc.util.{JavaClassPath, DirectoryClassPath}
 import spray.http.HttpHeaders._
 import spray.http.HttpMethods._
 
-class Server(url: String, port: Int) extends SimpleRoutingApp{
+class Server(url: String, port: Int, defaultRootObject: Option[String] = None, rootDirectory: Option[String] = None) extends SimpleRoutingApp{
   val corsHeaders: List[ModeledHeader] =
     List(
       `Access-Control-Allow-Methods`(OPTIONS, GET, POST),
@@ -57,8 +57,9 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
    * Actor meant to handle long polling, buffering messages or waiting actors
    */
   private val longPoll = actor(new Actor{
-    var waitingActor: Option[ActorRef] = None
+    var waitingActors = List[ActorRef]()
     var queuedMessages = List[Js.Value]()
+    var numActorsLastRespond: Int = 0
 
     /**
      * Flushes returns nothing to any waiting actor every so often,
@@ -68,32 +69,31 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
     import system.dispatcher
 
     system.scheduler.schedule(0.seconds, 10.seconds, self, Clear)
-    def respond(a: ActorRef, s: String) = {
-      a ! HttpResponse(
-        entity = s,
-        headers = corsHeaders
-      )
+
+    def respond() = {
+//      println(s"respond: #actors: ${waitingActors.size}, #msgs: ${queuedMessages.size}")
+      val httpResponse = HttpResponse(
+        headers = corsHeaders,
+        entity = upickle.json.write(Js.Arr(queuedMessages:_*)))
+
+      waitingActors.foreach(_ ! httpResponse)
+      numActorsLastRespond = waitingActors.size
+      waitingActors = Nil
+      queuedMessages = Nil
     }
-    def receive = (x: Any) => (x, waitingActor, queuedMessages) match {
-      case (a: ActorRef, _, Nil) =>
-        // Even if there's someone already waiting,
-        // a new actor waiting replaces the old one
-        waitingActor = Some(a)
 
-      case (a: ActorRef, None, msgs) =>
-        respond(a, upickle.json.write(Js.Arr(msgs:_*)))
-        queuedMessages = Nil
+    def receive = (x: Any) => x match {
+      case a: ActorRef =>
+        waitingActors = a :: waitingActors
+        // comparison to numActorsLastRespond increases the chance to reload all pages in case of multiple clients
+        if (queuedMessages.nonEmpty && numActorsLastRespond > 0 && waitingActors.size >= numActorsLastRespond)
+          respond()
 
-      case (msg: Js.Arr, None, msgs) =>
-        queuedMessages = msg :: msgs
+      case msg: Js.Arr =>
+        queuedMessages = msg :: queuedMessages
+        if (waitingActors.nonEmpty) respond()
 
-      case (msg: Js.Arr, Some(a), Nil) =>
-        respond(a, upickle.json.write(Js.Arr(msg)))
-        waitingActor = None
-
-      case (Clear, waitingOpt, msgs) =>
-        waitingOpt.foreach(respond(_, upickle.json.write(Js.Arr(msgs :_*))))
-        waitingActor = None
+      case Clear => respond()
     }
   })
 
@@ -104,23 +104,33 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
    * - Any other GET request just pulls from the local filesystem
    * - POSTs to /notifications get routed to the longPoll actor
    */
-  startServer(url, port) {
-    get {
-      path("workbench.js") {
-        complete {
-          val body = IO.readStream(
-            getClass.getClassLoader.getResourceAsStream("client-opt.js")
-          )
-          s"""
-          (function(){
-            $body
+  var hasBeenStarted: Boolean = false
 
-            com.lihaoyi.workbench.WorkbenchClient().main(${upickle.default.write(url)}, ${upickle.default.write(port)})
-          }).call(this)
-          """
-        }
+  def start(): Unit = {
+    if (hasBeenStarted) return
+    hasBeenStarted = true
+    startServer(url, port) {
+      get {
+        path("workbench.js") {
+          complete {
+            val body = IO.readStream(
+              getClass.getClassLoader.getResourceAsStream("client-opt.js")
+            )
+            s"""
+            (function(){
+              $body
+
+              com.lihaoyi.workbench.WorkbenchClient().main(${upickle.default.write(url)}, ${upickle.default.write(port)})
+            }).call(this)
+            """
+          }
+        } ~
+        getFromDirectory(".")
       } ~
-      getFromDirectory(".")
+      pathSingleSlash {
+        getFromFile(defaultRootObject.getOrElse(""))
+      } ~
+      getFromDirectory(rootDirectory.getOrElse("."))
 
     } ~
     post {
@@ -129,6 +139,7 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
       }
     }
   }
+
   def kill() = system.shutdown()
 
 }
