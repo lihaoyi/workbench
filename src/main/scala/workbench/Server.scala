@@ -104,31 +104,37 @@ class Server(url: String, port: Int) extends SimpleRoutingApp{
    * - Any other GET request just pulls from the local filesystem
    * - POSTs to /notifications get routed to the longPoll actor
    */
-  startServer(url, port) {
-    get {
-      path("workbench.js") {
-        complete {
-          val body = IO.readStream(
-            getClass.getClassLoader.getResourceAsStream("client-opt.js")
-          )
-          s"""
-          (function(){
-            $body
+  var hasBeenStarted: Boolean = false
 
-            com.lihaoyi.workbench.WorkbenchClient().main(${upickle.default.write(url)}, ${upickle.default.write(port)})
-          }).call(this)
-          """
-        }
+  def start(): Unit = {
+    if (hasBeenStarted) return
+    hasBeenStarted = true
+    startServer(url, port) {
+      get {
+        path("workbench.js") {
+          complete {
+            val body = IO.readStream(
+              getClass.getClassLoader.getResourceAsStream("client-opt.js")
+            )
+            s"""
+            (function(){
+              $body
+
+              com.lihaoyi.workbench.WorkbenchClient().main(${upickle.default.write(url)}, ${upickle.default.write(port)})
+            }).call(this)
+            """
+          }
+        } ~
+        getFromDirectory(".")
       } ~
-      getFromDirectory(".")
-
-    } ~
-    post {
-      path("notifications") { ctx =>
-        longPoll ! ctx.responder
+      post {
+        path("notifications") { ctx =>
+          longPoll ! ctx.responder
+        }
       }
     }
   }
+
   def kill() = system.shutdown()
 
 }

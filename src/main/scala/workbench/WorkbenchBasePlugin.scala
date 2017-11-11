@@ -13,9 +13,21 @@ object WorkbenchBasePlugin extends AutoPlugin {
   override def requires = ScalaJSPlugin
 
   object autoImport {
+    sealed trait StartMode
+
+    object WorkbenchStartModes {
+      case object OnCompile extends StartMode
+      case object OnSbtLoad extends StartMode
+      case object Manual extends StartMode
+    }
+
     val localUrl = settingKey[(String, Int)]("localUrl")
+    val workbenchStartMode = settingKey[StartMode](
+      "should the web server start on sbt load, on compile, or only by manually running `startWorkbenchServer`")
+    val startWorkbenchServer = taskKey[Unit]("start local web server manually")
   }
   import autoImport._
+  import WorkbenchStartModes._
   import ScalaJSPlugin.AutoImport._
 
   val server = settingKey[Server]("local websocket server")
@@ -37,7 +49,19 @@ object WorkbenchBasePlugin extends AutoPlugin {
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
     },
-    server := new Server(localUrl.value._1, localUrl.value._2),
+    server := {
+      val server = new Server(localUrl.value._1, localUrl.value._2)
+      if (workbenchStartMode.value == OnSbtLoad) server.start()
+      server
+    },
+    workbenchStartMode := OnSbtLoad,
+    startWorkbenchServer := server.value.start(),
+    (compile in Compile) := (compile in Compile)
+      .dependsOn(
+        Def.task {
+          if (workbenchStartMode.value == OnCompile) server.value.start()
+        })
+      .value,
     (onUnload in Global) := { (onUnload in Global).value.compose{ state =>
       server.value.kill()
       state
