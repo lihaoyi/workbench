@@ -18,15 +18,30 @@ object WorkbenchBasePlugin extends AutoPlugin {
   override def requires = ScalaJSPlugin
 
   object autoImport {
+
+    sealed trait StartMode
+
+    object WorkbenchStartModes {
+
+      case object OnCompile extends StartMode
+
+      case object OnSbtLoad extends StartMode
+
+      case object Manual extends StartMode
+
+    }
+
     val localUrl = settingKey[(String, Int)]("localUrl")
     val workbenchDefaultRootObject = settingKey[Option[(String, String)]]("path to defaultRootObject served on `/` and rootDirectory")
     val workbenchCompression = settingKey[Boolean]("use gzip compression on HTTP responses")
+    val workbenchStartMode = settingKey[StartMode](
+      "should the web server start on sbt load, on compile, or only by manually running `startWorkbenchServer`")
+    val startWorkbenchServer = taskKey[Unit]("start local web server manually")
   }
   import autoImport._
+  import WorkbenchStartModes._
 
   val server = settingKey[Server]("local websocket server")
-
-  lazy val replHistory = collection.mutable.Buffer.empty[String]
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
@@ -58,8 +73,20 @@ object WorkbenchBasePlugin extends AutoPlugin {
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
     },
-    server := new Server(localUrl.value._1, localUrl.value._2,
-      workbenchDefaultRootObject.value.map(_._1), workbenchDefaultRootObject.value.map(_._2), workbenchCompression.value),
+    server := {
+      val server = new Server(localUrl.value._1, localUrl.value._2,
+        workbenchDefaultRootObject.value.map(_._1), workbenchDefaultRootObject.value.map(_._2), workbenchCompression.value)
+      if (workbenchStartMode.value == OnSbtLoad) server.startServer()
+      server
+    },
+    workbenchStartMode := OnSbtLoad,
+    startWorkbenchServer := server.value.startServer(),
+    (compile in Compile) := (compile in Compile)
+      .dependsOn(
+        Def.task {
+          if (workbenchStartMode.value == OnCompile) server.value.startServer()
+        })
+      .value,
     (onUnload in Global) := {
       (onUnload in Global).value.compose { state =>
         server.value.kill()

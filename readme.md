@@ -1,9 +1,9 @@
-workbench 0.3.1
----------------
+Workbench
+---------
 
 ![Example](https://github.com/lihaoyi/scala-js-workbench/blob/master/Example.png?raw=true)
 
-A SBT plugin for [scala-js](https://github.com/lampepfl/scala-js) projects to make development in the browser more pleasant.
+A SBT plugin for [scala-js](https://scala-js.org) projects to make development in the browser more pleasant.
 
 - Spins up a local web server on (by default) `localhost:12345`, whenever you're in the SBT console. Navigate to localhost:12345 in the browser and it'll show a simple page tell you it's alive. You can access any file within your project directory by going to `localhost:12345/path/to/file` in a browser.
 - Forwards all SBT logging from your SBT console to the browser console, so you can see what's going on (e.g. when the project is recompiling) without having to flip back and forth between browser and terminal.
@@ -15,6 +15,9 @@ Installation
 ------------
 - Add to your `project/plugins.sbt`
 ```scala
+// for sbt 1.0+
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.4.0")
+// for sbt 0.13.x
 addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.1")
 ```
 - Add to your `build.sbt`
@@ -34,6 +37,12 @@ If you want to serve a defaultRootObject on `http://localhost:12345` and serve o
 ```scala
 workbenchDefaultRootObject := Some(("build/index-dev.html", "build/"))  // (defaultRootObject, rootDirectory) 
 ```
+
+If you're accessing Workbench remotely over a slow network, you can enable compression of the transferred data with:
+```scala
+workbenchCompression := true
+```
+Compression is only supported on sbt 1.0+
 
 #### Server Starting Behaviour
 
@@ -110,7 +119,10 @@ Pull requests welcome!
 Change Log
 ----------
 
-## 0.3.1
+## 0.4.0 (sbt 1.0+ only)
+- Support sbt 1.0+
+
+## 0.3.1 (sbt 0.13.x only)
 - Support for custom `defaultRootObject` and `rootDirectory` (by @torstenrudolf)
 - Custom Server starting behaviour (by @torstenrudolf)
 - Support multiple concurrent clients (by @torstenrudolf)
