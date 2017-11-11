@@ -21,11 +21,12 @@ import scala.concurrent.{Future, _}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-case class PromiseString(p: Promise[String])
+case class PromiseMessage(p: Promise[Js.Arr])
 
 class WorkbenchActor extends Actor {
-  private var waitingActor = Option.empty[PromiseString]
+  private var waitingActors = List.empty[PromiseMessage]
   private var queuedMessages = List.empty[Js.Value]
+  private var numActorsLastRespond = 0
 
   /**
     * Flushes returns nothing to any waiting actor every so often,
@@ -38,30 +39,31 @@ class WorkbenchActor extends Actor {
 
   system.scheduler.schedule(0.seconds, 10.seconds, self, Clear)
 
-  private def respond(a: PromiseString, s: String) = {
-    a.p.success(s)
+  private def respond(): Unit = {
+    val messages = Js.Arr(queuedMessages: _*)
+    waitingActors.foreach { a =>
+      a.p.success(messages)
+    }
+    numActorsLastRespond = waitingActors.size
+    waitingActors = Nil
+    queuedMessages = Nil
   }
 
-  override def receive = (x: Any) => (x, waitingActor, queuedMessages) match {
-    case (a: PromiseString, _, Nil) =>
+  override def receive = {
+    case a: PromiseMessage =>
       // Even if there's someone already waiting,
       // a new actor waiting replaces the old one
-      waitingActor = Some(a)
+      waitingActors = a :: waitingActors
+      // comparison to numActorsLastRespond increases the chance to reload all pages in case of multiple clients
+      if (queuedMessages.nonEmpty && numActorsLastRespond > 0 && waitingActors.size >= numActorsLastRespond)
+        respond()
 
-    case (a: PromiseString, None, msgs) =>
-      respond(a, upickle.json.write(Js.Arr(msgs: _*)))
-      queuedMessages = Nil
+    case msg: Js.Arr =>
+      queuedMessages = msg :: queuedMessages
+      if (waitingActors.nonEmpty) respond()
 
-    case (msg: Js.Arr, None, msgs) =>
-      queuedMessages = msg :: msgs
-
-    case (msg: Js.Arr, Some(a), Nil) =>
-      respond(a, upickle.json.write(Js.Arr(msg)))
-      waitingActor = None
-
-    case (Clear, waitingOpt, msgs) =>
-      waitingOpt.foreach(respond(_, upickle.json.write(Js.Arr(msgs: _*))))
-      waitingActor = None
+    case Clear =>
+      respond()
   }
 }
 
@@ -120,9 +122,11 @@ class Server(
   private val serverBinding = new AtomicReference[Http.ServerBinding]()
   private val encoder: Encoder = if (useCompression) Gzip else NoCoding
 
-  startServer()
+  var serverStarted = false
 
-  def startServer() = {
+  def startServer(): Unit = {
+    if (serverStarted) return
+    serverStarted = true
     val bindingFuture = Http().bindAndHandle(
       handler = routes,
       interface = url,
@@ -163,10 +167,10 @@ class Server(
         getFromDirectory(rootDirectory.getOrElse(".")) ~
         post {
           path("notifications") {
-            val p = Promise[String]
-            longPoll ! PromiseString(p)
+            val p = Promise[Js.Arr]
+            longPoll ! PromiseMessage(p)
             onSuccess(p.future) { v =>
-              complete(HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), v)).withHeaders(corsHeaders: _*))
+              complete(HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), upickle.json.write(v))).withHeaders(corsHeaders: _*))
             }
           }
         }
