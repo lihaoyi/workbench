@@ -19,16 +19,19 @@ object WorkbenchBasePlugin extends AutoPlugin {
 
   object autoImport {
     val localUrl = settingKey[(String, Int)]("localUrl")
+    val workbenchDefaultRootObject = settingKey[Option[(String, String)]]("path to defaultRootObject served on `/` and rootDirectory")
+    val workbenchCompression = settingKey[Boolean]("use gzip compression on HTTP responses")
   }
   import autoImport._
 
   val server = settingKey[Server]("local websocket server")
 
-
   lazy val replHistory = collection.mutable.Buffer.empty[String]
 
   val workbenchSettings = Seq(
     localUrl := ("localhost", 12345),
+    workbenchDefaultRootObject := None,
+    workbenchCompression := false,
     (extraLoggers in ThisBuild) := {
       val clientLogger = new AbstractAppender(
         "FakeAppender",
@@ -44,10 +47,10 @@ object WorkbenchBasePlugin extends AutoPlugin {
               o.getParameter match {
                 case e: sbt.internal.util.StringEvent => server.value.Wire[Api].print(level.toString, e.message).call()
                 case e: sbt.internal.util.ObjectEvent[_] => server.value.Wire[Api].print(level.toString, e.message.toString).call()
-                case _ => server.value.Wire[Api].print(level.toString, message.getFormattedMessage()).call()
+                case _ => server.value.Wire[Api].print(level.toString, message.getFormattedMessage).call()
               }
             }
-            case _ => server.value.Wire[Api].print(level.toString, message.getFormattedMessage()).call()
+            case _ => server.value.Wire[Api].print(level.toString, message.getFormattedMessage).call()
           }
         }
       }
@@ -55,7 +58,8 @@ object WorkbenchBasePlugin extends AutoPlugin {
       val currentFunction = extraLoggers.value
       (key: ScopedKey[_]) => clientLogger +: currentFunction(key)
     },
-    server := new Server(localUrl.value._1, localUrl.value._2),
+    server := new Server(localUrl.value._1, localUrl.value._2,
+      workbenchDefaultRootObject.value.map(_._1), workbenchDefaultRootObject.value.map(_._2), workbenchCompression.value),
     (onUnload in Global) := {
       (onUnload in Global).value.compose { state =>
         server.value.kill()

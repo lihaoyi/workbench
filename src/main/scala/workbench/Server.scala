@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.coding.{Encoder, Gzip, NoCoding}
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
@@ -65,7 +66,12 @@ class WorkbenchActor extends Actor {
 }
 
 
-class Server(url: String, port: Int) {
+class Server(
+  url: String,
+  port: Int,
+  defaultRootObject: Option[String] = None,
+  rootDirectory: Option[String] = None,
+  useCompression: Boolean = false) {
   val corsHeaders: List[ModeledHeader] =
     List(
       `Access-Control-Allow-Methods`(OPTIONS, GET, POST),
@@ -112,6 +118,7 @@ class Server(url: String, port: Int) {
   implicit val executionContext = system.dispatcher
 
   private val serverBinding = new AtomicReference[Http.ServerBinding]()
+  private val encoder: Encoder = if (useCompression) Gzip else NoCoding
 
   startServer()
 
@@ -133,7 +140,7 @@ class Server(url: String, port: Int) {
   }
 
   lazy val routes: Route =
-    encodeResponse {
+    encodeResponseWith(encoder) {
       get {
         path("workbench.js") {
           val body = IO.readStream(
@@ -150,7 +157,10 @@ class Server(url: String, port: Int) {
              """.stripMargin)
         }
       } ~
-        getFromDirectory(".") ~
+        pathSingleSlash {
+          getFromFile(defaultRootObject.getOrElse(""))
+        } ~
+        getFromDirectory(rootDirectory.getOrElse(".")) ~
         post {
           path("notifications") {
             val p = Promise[String]
