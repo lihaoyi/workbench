@@ -25,9 +25,8 @@ object WorkbenchPlugin extends AutoPlugin {
       streams.value.log.info("workbench: Reloading Pages...")
       server.value.Wire[Api].reload().call()
     },
-    // this currently requires the old <<= syntax
-    // see https://github.com/sbt/sbt/issues/1444
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(fastOptJS in Compile)
+    
+    refreshBrowsers := refreshBrowsers.triggeredBy(fastOptJS in Compile).value
   )
 
   override def projectSettings = workbenchSettings
