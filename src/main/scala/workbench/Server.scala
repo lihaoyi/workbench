@@ -164,7 +164,7 @@ class Server(
         pathSingleSlash {
           getFromFile(defaultRootObject.getOrElse(""))
         } ~
-        getFromDirectory(rootDirectory.getOrElse(".")) ~
+        CustomDirectives.getFromBrowseableDirectories(rootDirectory.getOrElse(".")) ~
         post {
           path("notifications") {
             val p = Promise[Js.Arr]
