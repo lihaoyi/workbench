@@ -35,7 +35,7 @@ object WorkbenchClient extends Api {
   @JSExport
   def main(host: String, port: Int): Unit = {
     def rec(): Unit = {
-      Ajax.post(s"/notifications").onComplete {
+      Ajax.post(s"http://$host:$port/notifications").onComplete {
         case util.Success(data) =>
           if (!success) println("Workbench connected")
           success = true
