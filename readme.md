@@ -16,7 +16,7 @@ Installation
 - Add to your `project/plugins.sbt`
 ```scala
 // for sbt 1.0+
-addSbtPlugin("com.lihaoyi" % "workbench" % "0.4.0")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.4.1")
 // for sbt 0.13.x
 addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.1")
 ```
@@ -118,6 +118,9 @@ Pull requests welcome!
 
 Change Log
 ----------
+
+## 0.4.1
+- Allow host/port configuration
 
 ## 0.4.0 (sbt 1.0+ only)
 - Support sbt 1.0+
